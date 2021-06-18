@@ -6,6 +6,8 @@ from gym import wrappers, logger
 import matplotlib
 import matplotlib.pyplot as plt
 
+import datetime as dt
+
 from python.Agent import *
 
 
@@ -13,6 +15,9 @@ from python.Agent import *
 
 
 if __name__ == '__main__':
+
+    cuda = torch.cuda.is_available()
+
     module = 'CartPole-v1'
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
@@ -33,9 +38,9 @@ if __name__ == '__main__':
     env = wrappers.Monitor(env, directory=outdir, force=True)
     env.seed(0)
 
-    agent = AgentStick(env.action_space)
+    agent = AgentStick(env.action_space, cuda)
 
-    episode_count = 2000
+    episode_count = 4000
     reward = 0
     done = False
 
@@ -50,8 +55,9 @@ if __name__ == '__main__':
 
     save = False
 
-
-    while(avg_reward<600 and nb_episodes<episode_count): #for i in range(episode_count):
+    while(avg_reward<1500 and nb_episodes<episode_count): #for i in range(episode_count):
+        if(nb_episodes%(episode_count//4) == 0):
+            print("1/4:", dt.datetime.now())
         nb_episodes += 1
         ob = env.reset()
         while True:

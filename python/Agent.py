@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 class AgentStick(object):
     """The world's simplest agent!"""
-    def __init__(self, action_space, neur=None):
+    def __init__(self, action_space, cuda):
         self.action_space = action_space    
         self.buffer = []
         self.buffer_size = 100000
@@ -22,22 +22,25 @@ class AgentStick(object):
         self.epsilon = 1.0
         self.gamma = 0.9
 
-        if(neur == None):
-            self.neur = NN()
-            self.neur_target = copy.deepcopy(self.neur)
-        else:
-            self.neur = neur
-            self.epsilon = 0
-        self.optimizer = torch.optim.Adam(self.neur.parameters(), 0.001) # smooth gradient descent
-
         self.i = 0
         self.tab_erreur = []
+
+        if(False):
+            self.device = torch.device('cuda')
+        else:
+            self.device = torch.device('cpu')
+
+
+        self.neur = NN().to(device=self.device)
+        self.neur_target = copy.deepcopy(self.neur).to(device=self.device)
+
+        self.optimizer = torch.optim.Adam(self.neur.parameters(), 0.001) # smooth gradient descent
         
 
 
     def act(self, observation, reward, done):
         #return self.action_space.sample()
-        tens_action = self.neur(torch.Tensor(observation))
+        tens_action = self.neur(torch.tensor(observation,  dtype=torch.float32, device=self.device))
         rand = random()
         if(rand > self.epsilon):
             _, indices = tens_action.max(0)
@@ -74,11 +77,11 @@ class AgentStick(object):
             loss_tmp.backward()
             self.optimizer.step()'''
 
-        tens_ob = torch.Tensor([item[0] for item in spl])
-        tens_action = torch.LongTensor([item[1] for item in spl])
-        tens_ob_next = torch.Tensor([item[2] for item in spl])
-        tens_reward = torch.Tensor([item[3] for item in spl])
-        tens_done = torch.Tensor([item[4] for item in spl])
+        tens_ob = torch.tensor([item[0] for item in spl], dtype=torch.float32, device=self.device)
+        tens_action = torch.tensor([item[1] for item in spl], dtype=torch.long, device=self.device)
+        tens_ob_next = torch.tensor([item[2] for item in spl], dtype=torch.float32, device=self.device)
+        tens_reward = torch.tensor([item[3] for item in spl], dtype=torch.float32, device=self.device)
+        tens_done = torch.tensor([item[4] for item in spl], dtype=torch.float32, device=self.device)
 
         tens_qvalue = self.neur(tens_ob)
         tens_qvalue = torch.index_select(tens_qvalue, 1, tens_action).diag()

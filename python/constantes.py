@@ -1,2 +1,2 @@
-N_IN = 64
-N_INTER = 64
+N_IN = 24
+N_INTER = 24
