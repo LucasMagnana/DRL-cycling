@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module = "MountainCarContinuous-v0"
+    module = "MountainCarContinuous-v0" #"LunarLanderContinuous-v2"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # like: tempfile.mkdtemp().
     
     outdir = './videos/'+module
-    env = wrappers.Monitor(env, directory=outdir, video_callable=False, force=True)
+    env = wrappers.Monitor(env, directory=outdir, video_callable=None, force=True)
     env.seed(0)
 
     agent = Agent(env.action_space, env.observation_space, cuda)
@@ -92,9 +92,10 @@ if __name__ == '__main__':
     plt.ylabel('Reward Accumulée')
     plt.show()
     
-    if(avg_reward > 0.80):
+    if(avg_reward > 0.89):
         print("Saving...")
         torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'.n')
+        plt.savefig("./images/"+module+".png")
 
     # Close the env and write monitor result info to disk
     env.close()
