@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # like: tempfile.mkdtemp().
     
     outdir = './videos/'+module
-    env = wrappers.Monitor(env, directory=outdir, force=True)
+    env = wrappers.Monitor(env, directory=outdir, video_callable=False, force=True)
     env.seed(0)
 
     agent = Agent(env.action_space, env.observation_space, cuda)
@@ -52,8 +52,10 @@ if __name__ == '__main__':
     nb_episodes = 0
 
     save = False
+    
+    print("start:", dt.datetime.now())
 
-    for e in range(1, EPISODE_COUNT+1): #for i in range(episode_count):
+    for e in range(1, EPISODE_COUNT): #for i in range(episode_count):
         if(e%(EPISODE_COUNT//4) == 0):
             print("1/4:", dt.datetime.now())
         ob = env.reset()
@@ -80,16 +82,19 @@ if __name__ == '__main__':
             # Note there's no env.render() here. But the environment still can open window and
             # render if asked by env.monitor: it calls env.render('rgb_array') to record video.
             # Video is not recorded every episode, see capped_cubic_video_schedule for 
+            
+    print("end:", dt.datetime.now())
 
     print("Average: ", avg_reward)
 
-    if(save):
-        print("Saving...")
-        torch.save(agent.neur.state_dict(), './trained_networks/'+module+'.n')
 
     plt.plot(tab_rewards_accumulees)
     plt.ylabel('Reward Accumulée')
     plt.show()
+    
+    if(avg_reward > 0.80):
+        print("Saving...")
+        torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'.n')
 
     # Close the env and write monitor result info to disk
     env.close()

@@ -26,7 +26,7 @@ class Agent(object):
         self.i = 0
         self.tab_erreur = []
 
-        self.noise = OUNoise(1)
+        self.noise = OUNoise(action_space.shape[0])
 
         if(False):
             self.device = torch.device('cuda')
@@ -37,7 +37,7 @@ class Agent(object):
         self.critic_target = copy.deepcopy(self.critic).to(device=self.device)
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY) # smooth gradient descent
 
-        self.actor = Actor(observation_space.shape[0]).to(device=self.device)
+        self.actor = Actor(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
         self.actor_target = copy.deepcopy(self.actor).to(device=self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), LR_ACTOR) # smooth gradient descent
         
@@ -73,12 +73,13 @@ class Agent(object):
         tens_reward = torch.tensor([item[3] for item in spl], dtype=torch.float32, device=self.device)
         tens_done = torch.tensor([item[4] for item in spl], dtype=torch.float32, device=self.device)
 
-        tens_qvalue = self.critic(tens_ob, tens_action).squeeze()
+        tens_qvalue = self.critic(tens_ob, tens_action.float()).squeeze()
 
         tens_next_action = self.actor_target(tens_ob_next)
 
-        self.critic_optimizer.zero_grad()
         tens_next_qvalue = self.critic_target(tens_ob_next, tens_next_action).squeeze()
+        
+        self.critic_optimizer.zero_grad()
         critic_loss = loss(tens_qvalue, tens_reward+(self.gamma*tens_next_qvalue)*tens_done)
         critic_loss.backward()
         self.critic_optimizer.step()
@@ -104,7 +105,6 @@ class OUNoise:
     def __init__(self, size, mu=0., theta=0.15, sigma=0.2):
         """Initialize parameters and noise process."""
 
-        print(size)
         self.mu = mu * np.ones(size)
         self.theta = theta
         self.sigma = sigma
