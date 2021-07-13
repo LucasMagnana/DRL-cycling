@@ -47,7 +47,7 @@ class Agent(object):
         action = self.actor(torch.tensor(observation,  dtype=torch.float32, device=self.device)).data.numpy()
         noise = self.noise.sample()
         action += noise
-        return torch.tensor(np.clip(action, self.action_space.low[0], self.action_space.high[0], action))
+        return np.clip(action, self.action_space.low[0], self.action_space.high[0], action)
         
 
     def sample(self, n=BATCH_SIZE):
@@ -76,6 +76,7 @@ class Agent(object):
         tens_qvalue = self.critic(tens_ob, tens_action.float()).squeeze()
 
         tens_next_action = self.actor_target(tens_ob_next)
+
 
         tens_next_qvalue = self.critic_target(tens_ob_next, tens_next_action).squeeze()
         

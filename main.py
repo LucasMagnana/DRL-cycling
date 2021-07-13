@@ -65,7 +65,7 @@ if __name__ == '__main__':
             ob_prec = ob  
             action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
-            agent.memorize(ob_prec, action.item(), ob, reward, done)
+            agent.memorize(ob_prec, action[0], ob, reward, done)
             reward_accumulee += reward
             if(len(agent.buffer)>LEARNING_START):
                 agent.learn()
@@ -90,9 +90,8 @@ if __name__ == '__main__':
 
     plt.plot(tab_rewards_accumulees)
     plt.ylabel('Reward Accumulée')
-    plt.show()
     
-    if(avg_reward > 0.89):
+    if(avg_reward > 89):
         print("Saving...")
         torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'.n')
         plt.savefig("./images/"+module+".png")
