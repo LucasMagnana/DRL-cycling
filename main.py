@@ -3,12 +3,12 @@ import sys
 
 import gym
 from gym import wrappers, logger
-import matplotlib
 import matplotlib.pyplot as plt
 
 import datetime as dt
 
 from python.Agent import *
+from python.constantes import *
 
 
 
@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module = 'CartPole-v1'
+    module = "MountainCarContinuous-v0"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -38,14 +38,12 @@ if __name__ == '__main__':
     env = wrappers.Monitor(env, directory=outdir, force=True)
     env.seed(0)
 
-    agent = AgentStick(env.action_space, cuda)
+    agent = Agent(env.action_space, env.observation_space, cuda)
 
-    episode_count = 4000
     reward = 0
     done = False
 
 
-    reward_accumulee=0
     tab_rewards_accumulees = []
 
     sum_reward = 0
@@ -55,19 +53,22 @@ if __name__ == '__main__':
 
     save = False
 
-    while(avg_reward<1500 and nb_episodes<episode_count): #for i in range(episode_count):
-        if(nb_episodes%(episode_count//4) == 0):
+    for e in range(1, EPISODE_COUNT+1): #for i in range(episode_count):
+        if(e%(EPISODE_COUNT//4) == 0):
             print("1/4:", dt.datetime.now())
-        nb_episodes += 1
         ob = env.reset()
+        reward_accumulee=0
+        steps=0
         while True:
-            ob_prec = ob       
+            ob_prec = ob  
             action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
-            agent.memorize(ob_prec, action, ob, reward, done)
+            agent.memorize(ob_prec, action.item(), ob, reward, done)
             reward_accumulee += reward
-            if done:
+            if(len(agent.buffer)>LEARNING_START):
                 agent.learn()
+            steps+=1
+            if done or steps > MAX_STEPS:
                 tab_rewards_accumulees.append(reward_accumulee)
                 if(nb_reward < 100):
                     nb_reward+=1
@@ -75,15 +76,12 @@ if __name__ == '__main__':
                     sum_reward -= tab_rewards_accumulees[len(tab_rewards_accumulees)-nb_reward+1]
                 sum_reward += reward_accumulee
                 avg_reward = sum_reward/nb_reward
-                reward_accumulee=0
                 break
             # Note there's no env.render() here. But the environment still can open window and
             # render if asked by env.monitor: it calls env.render('rgb_array') to record video.
             # Video is not recorded every episode, see capped_cubic_video_schedule for 
-    if(avg_reward > 195.0):
-        print("Solved in ", nb_episodes, " episodes!")
-    else :
-        print("Average: ", avg_reward)
+
+    print("Average: ", avg_reward)
 
     if(save):
         print("Saving...")
