@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module = "MountainCarContinuous-v0" #"LunarLanderContinuous-v2"
+    module =  "MountainCarContinuous-v0" #"LunarLanderContinuous-v2"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -65,7 +65,7 @@ if __name__ == '__main__':
             ob_prec = ob  
             action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
-            agent.memorize(ob_prec, action[0], ob, reward, done)
+            agent.memorize(ob_prec, action, ob, reward, done)
             reward_accumulee += reward
             if(len(agent.buffer)>LEARNING_START):
                 agent.learn()
@@ -91,10 +91,12 @@ if __name__ == '__main__':
     plt.plot(tab_rewards_accumulees)
     plt.ylabel('Reward Accumulée')
     
-    if(avg_reward > 89):
+    if(avg_reward > 90):
         print("Saving...")
         torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'.n')
         plt.savefig("./images/"+module+".png")
+    else:
+        plt.show()
 
     # Close the env and write monitor result info to disk
     env.close()

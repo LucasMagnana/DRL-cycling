@@ -68,11 +68,11 @@ class Agent(object):
 
 
         tens_ob = torch.tensor([item[0] for item in spl], dtype=torch.float32, device=self.device)
-        tens_action = torch.tensor([[item[1]] for item in spl], dtype=torch.long, device=self.device)
+        tens_action = torch.tensor([item[1] for item in spl], dtype=torch.long, device=self.device)
         tens_ob_next = torch.tensor([item[2] for item in spl], dtype=torch.float32, device=self.device)
         tens_reward = torch.tensor([item[3] for item in spl], dtype=torch.float32, device=self.device)
         tens_done = torch.tensor([item[4] for item in spl], dtype=torch.float32, device=self.device)
-
+        
         tens_qvalue = self.critic(tens_ob, tens_action.float()).squeeze()
 
         tens_next_action = self.actor_target(tens_ob_next)
