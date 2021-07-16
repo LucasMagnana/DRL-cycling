@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module =  "MountainCarContinuous-v0" #"LunarLanderContinuous-v2"
+    module =  "LunarLanderContinuous-v2" #"MountainCarContinuous-v0"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     # like: tempfile.mkdtemp().
     
     outdir = './videos/'+module
-    env = wrappers.Monitor(env, directory=outdir, video_callable=None, force=True)
+    env = wrappers.Monitor(env, directory=outdir, video_callable=False, force=True)
     env.seed(0)
 
     agent = Agent(env.action_space, env.observation_space, cuda)
@@ -63,14 +63,14 @@ if __name__ == '__main__':
         steps=0
         while True:
             ob_prec = ob  
-            action = agent.act(ob, reward, done)
+            action = agent.act(ob, reward, done).numpy()
             ob, reward, done, _ = env.step(action)
             agent.memorize(ob_prec, action, ob, reward, done)
             reward_accumulee += reward
-            if(len(agent.buffer)>LEARNING_START):
-                agent.learn()
             steps+=1
             if done or steps > MAX_STEPS:
+                if(len(agent.buffer)>LEARNING_START):
+                    agent.learn(steps)
                 tab_rewards_accumulees.append(reward_accumulee)
                 if(nb_reward < 100):
                     nb_reward+=1
@@ -79,10 +79,7 @@ if __name__ == '__main__':
                 sum_reward += reward_accumulee
                 avg_reward = sum_reward/nb_reward
                 break
-            # Note there's no env.render() here. But the environment still can open window and
-            # render if asked by env.monitor: it calls env.render('rgb_array') to record video.
-            # Video is not recorded every episode, see capped_cubic_video_schedule for 
-            
+          
     print("end:", dt.datetime.now())
 
     print("Average: ", avg_reward)
@@ -91,12 +88,11 @@ if __name__ == '__main__':
     plt.plot(tab_rewards_accumulees)
     plt.ylabel('Reward Accumulée')
     
-    if(avg_reward > 90):
-        print("Saving...")
-        torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'.n')
-        plt.savefig("./images/"+module+".png")
-    else:
-        plt.show()
+    print("Saving...")
+    torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'_target.n')
+    torch.save(agent.actor.state_dict(), './trained_networks/'+module+'.n')
+        
+    plt.savefig("./images/"+module+".png")
 
     # Close the env and write monitor result info to disk
     env.close()

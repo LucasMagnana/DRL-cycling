@@ -1,6 +1,6 @@
 from random import sample
 from random import * 
-from torch.nn import MSELoss
+import torch.nn.functional as F
 
 from python.constantes import *
 
@@ -9,6 +9,7 @@ import numpy as np
 import copy
 import numpy as np
 import torch
+import torch.nn as nn
 
 from python.NeuronalNetwork import *
 import matplotlib.pyplot as plt
@@ -22,8 +23,6 @@ class Agent(object):
 
         self.alpha = TAU
         self.gamma = GAMMA
-
-        self.i = 0
         self.tab_erreur = []
 
         self.noise = OUNoise(action_space.shape[0])
@@ -33,21 +32,25 @@ class Agent(object):
         else:
             self.device = torch.device('cpu')
 
-        self.critic = Critic(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
-        self.critic_target = copy.deepcopy(self.critic).to(device=self.device)
-        self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY) # smooth gradient descent
+        self.critic_1 = Critic(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
+        self.critic_1_target = copy.deepcopy(self.critic_1).to(device=self.device)
+        self.critic_1_optimizer = torch.optim.Adam(self.critic_1.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        
+        self.critic_2 = Critic(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
+        self.critic_2_target = copy.deepcopy(self.critic_2).to(device=self.device)
+        self.critic_2_optimizer = torch.optim.Adam(self.critic_2.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY)
 
-        self.actor = Actor(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
+        self.actor = Actor(observation_space.shape[0], action_space.shape[0], action_space.high[0]).to(device=self.device)
         self.actor_target = copy.deepcopy(self.actor).to(device=self.device)
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), LR_ACTOR) # smooth gradient descent
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), LR_ACTOR)
         
 
 
     def act(self, observation, reward, done):
         action = self.actor(torch.tensor(observation,  dtype=torch.float32, device=self.device)).data.numpy()
-        noise = self.noise.sample()
-        action += noise
-        return np.clip(action, self.action_space.low[0], self.action_space.high[0], action)
+        action += np.random.normal(0, EXPLORATION_NOISE, size=self.action_space.shape[0])
+        action = action.clip(self.action_space.low, self.action_space.high)
+        return torch.tensor(action)
         
 
     def sample(self, n=BATCH_SIZE):
@@ -60,42 +63,58 @@ class Agent(object):
             self.buffer.pop(0)
         self.buffer.append([ob_prec, action, ob, reward, not(done)])
 
-    def learn(self):
-
-        self.i += 1
-        loss = MSELoss()
-        spl = self.sample()
-
-
-        tens_ob = torch.tensor([item[0] for item in spl], dtype=torch.float32, device=self.device)
-        tens_action = torch.tensor([item[1] for item in spl], dtype=torch.long, device=self.device)
-        tens_ob_next = torch.tensor([item[2] for item in spl], dtype=torch.float32, device=self.device)
-        tens_reward = torch.tensor([item[3] for item in spl], dtype=torch.float32, device=self.device)
-        tens_done = torch.tensor([item[4] for item in spl], dtype=torch.float32, device=self.device)
+    def learn(self, n_iter):
         
-        tens_qvalue = self.critic(tens_ob, tens_action.float()).squeeze()
+        for i in range(n_iter):
+            
+            spl = self.sample()
 
-        tens_next_action = self.actor_target(tens_ob_next)
+            tens_ob = torch.tensor([item[0] for item in spl], dtype=torch.float32, device=self.device)
+            tens_action = torch.tensor([item[1] for item in spl], dtype=torch.long, device=self.device)
+            tens_ob_next = torch.tensor([item[2] for item in spl], dtype=torch.float32, device=self.device)
+            tens_reward = torch.tensor([item[3] for item in spl], dtype=torch.float32, device=self.device)
+            tens_done = torch.tensor([item[4] for item in spl], dtype=torch.float32, device=self.device)
+            
+            tens_noise = torch.empty(tens_action.shape)
+            tens_noise = nn.init.normal_(tens_noise, mean=0, std=POLICY_NOISE)
+            tens_noise = tens_noise.clamp(-NOISE_CLIP, NOISE_CLIP)
+            tens_next_action = (self.actor_target(tens_ob_next) + tens_noise)
+            tens_next_action = tens_next_action.clamp(-self.action_space.high[0], self.action_space.high[0])
+
+            tens_target_qvalue_1 = self.critic_1_target(tens_ob_next, tens_next_action.float()).squeeze()
+            tens_target_qvalue_2 = self.critic_2_target(tens_ob_next, tens_next_action.float()).squeeze()       
+            tens_target_qvalue = torch.min(tens_target_qvalue_1, tens_target_qvalue_2)
+            
+            tens_target_qvalue = tens_reward+(self.gamma*tens_target_qvalue)*tens_done.detach()
 
 
-        tens_next_qvalue = self.critic_target(tens_ob_next, tens_next_action).squeeze()
-        
-        self.critic_optimizer.zero_grad()
-        critic_loss = loss(tens_qvalue, tens_reward+(self.gamma*tens_next_qvalue)*tens_done)
-        critic_loss.backward()
-        self.critic_optimizer.step()
+            tens_qvalue_1 = self.critic_1(tens_ob, tens_action.float()).squeeze()
+            critic_1_loss = F.mse_loss(tens_qvalue_1, tens_target_qvalue)
+            self.critic_1_optimizer.zero_grad()
+            critic_1_loss.backward(retain_graph=True)
+            self.critic_1_optimizer.step()
 
-        tens_actions_pred = self.actor(tens_ob)
-        actor_loss = -self.critic(tens_ob, tens_actions_pred).mean()
-        self.actor_optimizer.zero_grad()
-        actor_loss.backward()
-        self.actor_optimizer.step()
+            tens_qvalue_2 = self.critic_2(tens_ob, tens_action.float()).squeeze()
+            critic_2_loss = F.mse_loss(tens_qvalue_2, tens_target_qvalue)
+            self.critic_2_optimizer.zero_grad()
+            critic_2_loss.backward()
+            self.critic_2_optimizer.step()
+            
+            if(i%POLICY_DELAY == 0):
+                
+                actor_loss = -self.critic_1(tens_ob, self.actor(tens_ob)).mean()
+                self.actor_optimizer.zero_grad()
+                actor_loss.backward()
+                self.actor_optimizer.step()
 
-        for target_param, param in zip(self.critic_target.parameters(), self.critic.parameters()):
-            target_param.data.copy_(self.alpha * param + (1-self.alpha)*target_param )
-        
-        for target_param, param in zip(self.actor_target.parameters(), self.actor.parameters()):
-            target_param.data.copy_(self.alpha * param + (1-self.alpha)*target_param )
+                for target_param, param in zip(self.critic_1_target.parameters(), self.critic_1.parameters()):
+                    target_param.data.copy_(self.alpha * param + (1-self.alpha)*target_param )
+
+                for target_param, param in zip(self.critic_2_target.parameters(), self.critic_2.parameters()):
+                    target_param.data.copy_(self.alpha * param + (1-self.alpha)*target_param )
+
+                for target_param, param in zip(self.actor_target.parameters(), self.actor.parameters()):
+                    target_param.data.copy_(self.alpha * param + (1-self.alpha)*target_param )
 
 
 
