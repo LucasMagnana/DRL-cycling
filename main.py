@@ -1,14 +1,13 @@
 import argparse
 import sys
 
-import gym
-from gym import wrappers, logger
 import matplotlib.pyplot as plt
 
 import datetime as dt
 
 from python.Agent import *
 from python.constantes import *
+from python.Environment import *
 
 
 
@@ -18,26 +17,14 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module =  "LunarLanderContinuous-v2" #"MountainCarContinuous-v0"
+    module =  "monresovelo"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
-
-    # You can set the level to logger.DEBUG or logger.WARN if you
-    # want to change the amount of output.
-    logger.set_level(logger.WARN)
-
-    env = gym.make(args.env_id)
-
-    # You provide the directory to write to (can be an existing
-    # directory, including one with existing data -- all monitor files
-    # will be namespaced). You can also dump to a tempdir if you'd
-    # like: tempfile.mkdtemp().
     
-    outdir = './videos/'+module
-    env = wrappers.Monitor(env, directory=outdir, video_callable=False, force=True)
-    env.seed(0)
+    env = Environment(module)
 
+    
     agent = Agent(env.action_space, env.observation_space, cuda)
 
     reward = 0
@@ -71,6 +58,7 @@ if __name__ == '__main__':
             if done or steps > MAX_STEPS:
                 if(len(agent.buffer)>LEARNING_START):
                     agent.learn(steps)
+                reward_accumulee = env.overlap
                 tab_rewards_accumulees.append(reward_accumulee)
                 if(nb_reward < 100):
                     nb_reward+=1
@@ -78,6 +66,9 @@ if __name__ == '__main__':
                     sum_reward -= tab_rewards_accumulees[len(tab_rewards_accumulees)-nb_reward+1]
                 sum_reward += reward_accumulee
                 avg_reward = sum_reward/nb_reward
+                break
+            if(reward_accumulee > 1):
+                print("error reward_accumulee")
                 break
           
     print("end:", dt.datetime.now())

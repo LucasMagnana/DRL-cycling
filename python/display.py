@@ -4,7 +4,6 @@ import pandas as pd
 import folium
 from folium.plugins import HeatMap
 
-import python.voxels as voxel
 
 token = "pk.eyJ1IjoibG1hZ25hbmEiLCJhIjoiY2s2N3hmNzgwMGNnODNqcGJ1N2l2ZXZpdiJ9.-aOxDLM8KbEQnJfXegtl7A"
 px.set_mapbox_access_token(token)
@@ -82,25 +81,6 @@ def display_routes(df, tab_routes, tab_voxels=[], line_group="route_num", color=
     display(dfdisplay, len(tab_routes), line_group, color)
 
 
-
-
-def create_df_heatmap(df, tab_routes, tab_voxels=[], line_group="route_num", color=None):
-    dfdisplay = pd.DataFrame(columns=["lat", "lon", "route_num"])
-    for i in range(len(tab_routes)):
-        df_temp = df[df["route_num"]==tab_routes[i]]
-        df_temp["num_route"] = i
-        dfdisplay = dfdisplay.append(df_temp)
-    _, _, dict_voxels = voxel.generate_voxels(dfdisplay, 0, dfdisplay.iloc[-1]["route_num"])
-    tab = []
-    for key in dict_voxels:
-        tab_routes = dict_voxels[key]["tab_routes_real"]+dict_voxels[key]["tab_routes_extended"]
-        vox_str = key.split(";")
-        vox_int = [int(vox_str[0]), int(vox_str[1])]
-        vox_pos = voxel.get_voxel_points(vox_int, 0)
-        if(dict_voxels[key]["cyclability_coeff"]):
-            tab.append([vox_pos[0][0], vox_pos[0][1], dict_voxels[key]["cyclability_coeff"]])
-
-    return pd.DataFrame(tab, columns=["lat", "lon", "value"])
 
 
 
