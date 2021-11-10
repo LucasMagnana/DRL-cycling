@@ -1,12 +1,14 @@
 import argparse
 import sys
 import gym 
+import pickle
 
 import matplotlib.pyplot as plt
 
 import datetime as dt
 
-from python.Agent import *
+from python.ContinuousAgent import *
+from python.DiscreteAgent import *
 from python.hyperParams import hyperParams
 from python.Environment import *
 
@@ -18,7 +20,7 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module =  "LunarLanderContinuous-v2"
+    module =  "CartPole-v0" #"LunarLanderContinuous-v2"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -27,7 +29,7 @@ if __name__ == '__main__':
     env = gym.make(module)
 
     
-    agent = Agent(env.action_space, env.observation_space, cuda)
+    agent = DiscreteAgent(env.action_space, env.observation_space, cuda)
 
     reward = 0
     done = False
@@ -44,7 +46,8 @@ if __name__ == '__main__':
     episode_count = hyperParams.EPISODE_COUNT
     max_steps = hyperParams.MAX_STEPS
 
-    save = False
+
+    goal_avg_reward = 195
     
     print("start:", dt.datetime.now())
 
@@ -72,6 +75,9 @@ if __name__ == '__main__':
                 sum_reward += reward_accumulee
                 avg_reward = sum_reward/nb_reward
                 break
+        if(avg_reward>=goal_avg_reward):
+            print("SOLVED!")
+            break
           
     print("end:", dt.datetime.now())
 
@@ -85,6 +91,9 @@ if __name__ == '__main__':
     print("Saving...")
     torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'_target.n')
     torch.save(agent.actor.state_dict(), './trained_networks/'+module+'.n')
+
+    with open('./trained_networks/'+module+'.hp') as outfile:
+        pickle.dump(hyperParams, outfile)
         
     plt.savefig("./images/"+module+".png")
 

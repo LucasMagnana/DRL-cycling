@@ -1,4 +1,4 @@
-class HyperParams :
+class ContHyperParams :
     def __init__(self):
         self.ACT_IN = 400
         self.ACT_INTER = 300
@@ -25,4 +25,18 @@ class HyperParams :
         self.EXPLORATION_NOISE = 0.1
 
 
-hyperParams = HyperParams()
+
+class DisHyperParams :
+    def __init__(self):
+        self.BUFFER_SIZE = 100000
+        self.ALPHA = 0.05
+        self.EPSILON = 1.0
+        self.MIN_EPSILON = 0.1
+        self.EPSILON_DECAY = 0.99
+        self.GAMMA = 0.9
+        self.LR = 0.001
+        self.BATCH_SIZE = 128
+
+
+#hyperParams = ContHyperParams()
+hyperParams = DisHyperParams()

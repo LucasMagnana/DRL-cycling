@@ -15,7 +15,7 @@ from python.NeuralNetworks import *
 import matplotlib.pyplot as plt
 
 
-class Agent(object):
+class ContinuousAgent(object):
     def __init__(self, action_space, observation_space, cuda):
 
         self.buffer_size = hyperParams.BUFFER_SIZE

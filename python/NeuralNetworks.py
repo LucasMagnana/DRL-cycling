@@ -7,7 +7,7 @@ from python.hyperParams import hyperParams
 
 class Actor(nn.Module):
 
-    def __init__(self, size_ob, size_action, max_action):
+    def __init__(self, size_ob, size_action, max_action=1):
         super(Actor, self).__init__()
         self.inp = nn.Linear(size_ob, hyperParams.ACT_IN)
         self.int = nn.Linear(hyperParams.ACT_IN, hyperParams.ACT_INTER)
