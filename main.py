@@ -32,6 +32,7 @@ if __name__ == '__main__':
 
 
     tab_rewards_accumulees = []
+    tab_noise = []
 
     sum_reward = 0
     nb_reward = 0
@@ -60,6 +61,11 @@ if __name__ == '__main__':
                     agent.learn(steps)
                 reward_accumulee = env.overlap
                 tab_rewards_accumulees.append(reward_accumulee)
+                if(agent.adding_noise):
+                    tab_noise.append(agent.exploration_noise)
+                else:
+                    tab_noise.append(0)
+                
                 if(nb_reward < 100):
                     nb_reward+=1
                 else:
@@ -77,6 +83,7 @@ if __name__ == '__main__':
 
 
     plt.plot(tab_rewards_accumulees)
+    plt.plot(tab_noise)
     plt.ylabel('Reward Accumulée')
     
     print("Saving...")

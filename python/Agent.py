@@ -31,7 +31,7 @@ class Agent(object):
             self.device = torch.device('cuda')
         else:
             self.device = torch.device('cpu')
-            
+
         self.critic_1 = Critic(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
         self.critic_1_target = copy.deepcopy(self.critic_1).to(device=self.device)
         self.critic_1_optimizer = torch.optim.Adam(self.critic_1.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY)
@@ -49,7 +49,7 @@ class Agent(object):
     def act(self, observation, reward, done):
         action = self.actor(torch.tensor(observation,  dtype=torch.float32, device=self.device)).data.numpy()
         action += np.random.normal(0, EXPLORATION_NOISE, size=self.action_space.shape[0])
-        action = action.clip(self.action_space.low[0], self.action_space.high[0])
+        action = action.clip(self.action_space.low, self.action_space.high)
         return torch.tensor(action)
         
 
