@@ -1,12 +1,13 @@
 import argparse
 import sys
+import gym 
 
 import matplotlib.pyplot as plt
 
 import datetime as dt
 
 from python.Agent import *
-from python.constantes import *
+from python.hyperParams import hyperParams
 from python.Environment import *
 
 
@@ -17,12 +18,13 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module =  "monresovelo"
+    module =  "LunarLanderContinuous-v2"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
     
-    env = Environment(module)
+    #env = Environment(module)
+    env = gym.make(module)
 
     
     agent = Agent(env.action_space, env.observation_space, cuda)
@@ -39,12 +41,15 @@ if __name__ == '__main__':
     avg_reward = 0
     nb_episodes = 0
 
+    episode_count = hyperParams.EPISODE_COUNT
+    max_steps = hyperParams.MAX_STEPS
+
     save = False
     
     print("start:", dt.datetime.now())
 
-    for e in range(1, EPISODE_COUNT): #for i in range(episode_count):
-        if(e%(EPISODE_COUNT//4) == 0):
+    for e in range(1, episode_count): #for i in range(episode_count):
+        if(e%(episode_count//4) == 0):
             print("1/4:", dt.datetime.now())
         ob = env.reset()
         reward_accumulee=0
@@ -56,25 +61,16 @@ if __name__ == '__main__':
             agent.memorize(ob_prec, action, ob, reward, done)
             reward_accumulee += reward
             steps+=1
-            if done or steps > MAX_STEPS:
-                if(len(agent.buffer)>LEARNING_START):
+            if done or steps > max_steps:
+                if(len(agent.buffer)>hyperParams.LEARNING_START):
                     agent.learn(steps)
-                reward_accumulee = env.overlap
-                tab_rewards_accumulees.append(reward_accumulee)
-                if(agent.adding_noise):
-                    tab_noise.append(agent.exploration_noise)
-                else:
-                    tab_noise.append(0)
-                
+                tab_rewards_accumulees.append(reward_accumulee)               
                 if(nb_reward < 100):
                     nb_reward+=1
                 else:
                     sum_reward -= tab_rewards_accumulees[len(tab_rewards_accumulees)-nb_reward+1]
                 sum_reward += reward_accumulee
                 avg_reward = sum_reward/nb_reward
-                break
-            if(reward_accumulee > 1):
-                print("error reward_accumulee")
                 break
           
     print("end:", dt.datetime.now())

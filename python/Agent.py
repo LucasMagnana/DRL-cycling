@@ -2,7 +2,7 @@ from random import sample
 from random import * 
 import torch.nn.functional as F
 
-from python.constantes import *
+from python.hyperParams import hyperParams
 
 import numpy as np
 
@@ -11,18 +11,22 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from python.NeuronalNetwork import *
+from python.NeuralNetworks import *
 import matplotlib.pyplot as plt
 
 
 class Agent(object):
     def __init__(self, action_space, observation_space, cuda):
+
+        self.buffer_size = hyperParams.BUFFER_SIZE
+        self.alpha = hyperParams.TAU
+        self.gamma = hyperParams.GAMMA
+        self.exploration_noise = hyperParams.EXPLORATION_NOISE
+        self.policy_noise = hyperParams.POLICY_NOISE
+
         self.action_space = action_space
         self.buffer = []
-        self.buffer_size = BUFFER_SIZE
 
-        self.alpha = TAU
-        self.gamma = GAMMA
         self.tab_erreur = []
 
         self.noise = OUNoise(action_space.shape[0])
@@ -34,26 +38,26 @@ class Agent(object):
 
         self.critic_1 = Critic(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
         self.critic_1_target = copy.deepcopy(self.critic_1).to(device=self.device)
-        self.critic_1_optimizer = torch.optim.Adam(self.critic_1.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        self.critic_1_optimizer = torch.optim.Adam(self.critic_1.parameters(), hyperParams.LR_CRITIC, weight_decay=hyperParams.WEIGHT_DECAY)
         
         self.critic_2 = Critic(observation_space.shape[0], action_space.shape[0]).to(device=self.device)
         self.critic_2_target = copy.deepcopy(self.critic_2).to(device=self.device)
-        self.critic_2_optimizer = torch.optim.Adam(self.critic_2.parameters(), LR_CRITIC, weight_decay=WEIGHT_DECAY)
+        self.critic_2_optimizer = torch.optim.Adam(self.critic_2.parameters(), hyperParams.LR_CRITIC, weight_decay=hyperParams.WEIGHT_DECAY)
 
         self.actor = Actor(observation_space.shape[0], action_space.shape[0], action_space.high[0]).to(device=self.device)
         self.actor_target = copy.deepcopy(self.actor).to(device=self.device)
-        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), LR_ACTOR)
+        self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), hyperParams.LR_ACTOR)
         
 
 
     def act(self, observation, reward, done):
         action = self.actor(torch.tensor(observation,  dtype=torch.float32, device=self.device)).data.numpy()
-        action += np.random.normal(0, EXPLORATION_NOISE, size=self.action_space.shape[0])
+        action += np.random.normal(0, self.exploration_noise, size=self.action_space.shape[0])
         action = action.clip(self.action_space.low, self.action_space.high)
         return torch.tensor(action)
         
 
-    def sample(self, n=BATCH_SIZE):
+    def sample(self, n=hyperParams.BATCH_SIZE):
         if(n > len(self.buffer)):
             n = len(self.buffer)
         return sample(self.buffer, n)
@@ -76,8 +80,8 @@ class Agent(object):
             tens_done = torch.tensor([item[4] for item in spl], dtype=torch.float32, device=self.device)
             
             tens_noise = torch.empty(tens_action.shape)
-            tens_noise = nn.init.normal_(tens_noise, mean=0, std=POLICY_NOISE)
-            tens_noise = tens_noise.clamp(-NOISE_CLIP, NOISE_CLIP)
+            tens_noise = nn.init.normal_(tens_noise, mean=0, std=self.policy_noise)
+            tens_noise = tens_noise.clamp(-hyperParams.NOISE_CLIP, hyperParams.NOISE_CLIP)
             tens_next_action = (self.actor_target(tens_ob_next) + tens_noise)
             tens_next_action = tens_next_action.clamp(-self.action_space.high[0], self.action_space.high[0])
 
@@ -100,7 +104,7 @@ class Agent(object):
             critic_2_loss.backward()
             self.critic_2_optimizer.step()
             
-            if(i%POLICY_DELAY == 0):
+            if(i%hyperParams.POLICY_DELAY == 0):
                 
                 actor_loss = -self.critic_1(tens_ob, self.actor(tens_ob)).mean()
                 self.actor_optimizer.zero_grad()

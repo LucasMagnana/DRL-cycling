@@ -11,7 +11,7 @@ import datetime as dt
 
 import torch
 
-from python.NeuronalNetwork import *
+from python.NeuralNetworks import *
 
 
 
@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
     MAX_STEPS = 1000
 
-    module = "MountainCarContinuous-v0"
+    module = "LunarLanderContinuous-v2"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     
     env = wrappers.Monitor(env, directory='./videos/tests/', force=True)
 
-    actor = Actor(env.observation_space.shape[0], env.action_space.shape[0])
+    actor = Actor(env.observation_space.shape[0], env.action_space.shape[0], env.action_space.high[0])
     actor.load_state_dict(torch.load('./trained_networks/'+module+'.n'))
     actor.eval()
 

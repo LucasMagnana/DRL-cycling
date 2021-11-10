@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.autograd import Variable
-from python.constantes import *
+from python.hyperParams import hyperParams
 
 
 
@@ -9,9 +9,9 @@ class Actor(nn.Module):
 
     def __init__(self, size_ob, size_action, max_action):
         super(Actor, self).__init__()
-        self.inp = nn.Linear(size_ob, ACT_IN)
-        self.int = nn.Linear(ACT_IN, ACT_INTER)
-        self.out = nn.Linear(ACT_INTER, size_action)
+        self.inp = nn.Linear(size_ob, hyperParams.ACT_IN)
+        self.int = nn.Linear(hyperParams.ACT_IN, hyperParams.ACT_INTER)
+        self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
         self.max_action = max_action
 
     def forward(self, ob):
@@ -24,9 +24,9 @@ class Critic(nn.Module):
 
     def __init__(self, size_ob, size_action):
         super(Critic, self).__init__()
-        self.inp = nn.Linear(size_ob+size_action, CRIT_IN)
-        self.int = nn.Linear(CRIT_IN, CRIT_INTER)
-        self.out = nn.Linear(CRIT_INTER, 1)
+        self.inp = nn.Linear(size_ob+size_action, hyperParams.CRIT_IN)
+        self.int = nn.Linear(hyperParams.CRIT_IN, hyperParams.CRIT_INTER)
+        self.out = nn.Linear(hyperParams.CRIT_INTER, 1)
 
     def forward(self, ob, action):
         out = nn.functional.relu(self.inp(torch.cat((ob, action), dim=1)))
