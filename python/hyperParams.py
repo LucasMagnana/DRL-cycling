@@ -37,6 +37,14 @@ class DisHyperParams :
         self.LR = 0.001
         self.BATCH_SIZE = 128
 
+        self.ACT_IN = 64
+        self.ACT_INTER = 64
+        self.EPISODE_COUNT = 2000
+        self.MAX_STEPS = 1e25
+        self.LEARNING_START = 0
 
-#hyperParams = ContHyperParams()
-hyperParams = DisHyperParams()
+module = "LunarLanderContinuous-v2" #"CartPole-v1" 
+if("Continuous" in module):
+    hyperParams = ContHyperParams()
+else:
+    hyperParams = DisHyperParams()

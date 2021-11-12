@@ -44,7 +44,7 @@ class ContinuousAgent(object):
         self.critic_2_target = copy.deepcopy(self.critic_2).to(device=self.device)
         self.critic_2_optimizer = torch.optim.Adam(self.critic_2.parameters(), hyperParams.LR_CRITIC, weight_decay=hyperParams.WEIGHT_DECAY)
 
-        self.actor = Actor(observation_space.shape[0], action_space.shape[0], action_space.high[0]).to(device=self.device)
+        self.actor = Actor(observation_space.shape[0], action_space.shape[0], action_space.high[0], tanh=True).to(device=self.device)
         self.actor_target = copy.deepcopy(self.actor).to(device=self.device)
         self.actor_optimizer = torch.optim.Adam(self.actor.parameters(), hyperParams.LR_ACTOR)
         
@@ -54,7 +54,7 @@ class ContinuousAgent(object):
         action = self.actor(torch.tensor(observation,  dtype=torch.float32, device=self.device)).data.numpy()
         action += np.random.normal(0, self.exploration_noise, size=self.action_space.shape[0])
         action = action.clip(self.action_space.low, self.action_space.high)
-        return torch.tensor(action)
+        return torch.tensor(action).numpy()
         
 
     def sample(self, n=hyperParams.BATCH_SIZE):

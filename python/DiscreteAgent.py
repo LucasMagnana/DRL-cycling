@@ -22,7 +22,6 @@ class DiscreteAgent(object):
         self.epsilon = hyperParams.EPSILON
         self.gamma = hyperParams.GAMMA
 
-        print(observation_space.shape, action_space.n)
         self.actor = Actor(observation_space.shape[0], action_space.n)
         self.actor_target = copy.deepcopy(self.actor)
 
@@ -50,7 +49,8 @@ class DiscreteAgent(object):
             self.buffer.pop(0)
         self.buffer.append([ob_prec, action, ob, reward, not(done)])
 
-    def learn(self):
+    def learn(self, n_iter):
+        #n_iter only used in continuousAgent
         loss = MSELoss()
         if(self.epsilon > hyperParams.MIN_EPSILON):
             self.epsilon *= hyperParams.EPSILON_DECAY

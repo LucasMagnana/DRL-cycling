@@ -9,7 +9,7 @@ import datetime as dt
 
 from python.ContinuousAgent import *
 from python.DiscreteAgent import *
-from python.hyperParams import hyperParams
+from python.hyperParams import hyperParams, module
 from python.Environment import *
 
 
@@ -20,7 +20,6 @@ if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
 
-    module =  "CartPole-v0" #"LunarLanderContinuous-v2"
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
@@ -28,8 +27,10 @@ if __name__ == '__main__':
     #env = Environment(module)
     env = gym.make(module)
 
-    
-    agent = DiscreteAgent(env.action_space, env.observation_space, cuda)
+    if("Continuous" in module):      
+        agent = ContinuousAgent(env.action_space, env.observation_space, cuda)
+    else:
+        agent = DiscreteAgent(env.action_space, env.observation_space, cuda)
 
     reward = 0
     done = False
@@ -45,9 +46,6 @@ if __name__ == '__main__':
 
     episode_count = hyperParams.EPISODE_COUNT
     max_steps = hyperParams.MAX_STEPS
-
-
-    goal_avg_reward = 195
     
     print("start:", dt.datetime.now())
 
@@ -59,7 +57,7 @@ if __name__ == '__main__':
         steps=0
         while True:
             ob_prec = ob  
-            action = agent.act(ob, reward, done).numpy()
+            action = agent.act(ob, reward, done)
             ob, reward, done, _ = env.step(action)
             agent.memorize(ob_prec, action, ob, reward, done)
             reward_accumulee += reward
@@ -75,9 +73,6 @@ if __name__ == '__main__':
                 sum_reward += reward_accumulee
                 avg_reward = sum_reward/nb_reward
                 break
-        if(avg_reward>=goal_avg_reward):
-            print("SOLVED!")
-            break
           
     print("end:", dt.datetime.now())
 
@@ -92,7 +87,7 @@ if __name__ == '__main__':
     torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'_target.n')
     torch.save(agent.actor.state_dict(), './trained_networks/'+module+'.n')
 
-    with open('./trained_networks/'+module+'.hp') as outfile:
+    with open('./trained_networks/'+module+'.hp', 'wb') as outfile:
         pickle.dump(hyperParams, outfile)
         
     plt.savefig("./images/"+module+".png")
