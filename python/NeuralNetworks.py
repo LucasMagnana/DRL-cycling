@@ -8,7 +8,7 @@ import python.hyperParams as HP
 
 class Actor(nn.Module):
 
-    def __init__(self, size_ob, size_action, hp_saved=None, max_action=1, tanh=False): #for saved hyperparameters
+    def __init__(self, size_ob, size_action, max_action=1, hp_saved=None, tanh=False): #for saved hyperparameters
         super(Actor, self).__init__()
         if(hp_saved == None):
             hyperParams=HP.hyperParams
@@ -34,6 +34,7 @@ class Critic(nn.Module):
 
     def __init__(self, size_ob, size_action):
         super(Critic, self).__init__()
+        hyperParams=HP.hyperParams
         self.inp = nn.Linear(size_ob+size_action, hyperParams.CRIT_IN)
         self.int = nn.Linear(hyperParams.CRIT_IN, hyperParams.CRIT_INTER)
         self.out = nn.Linear(hyperParams.CRIT_INTER, 1)

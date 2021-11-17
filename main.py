@@ -10,7 +10,9 @@ import datetime as dt
 from python.ContinuousAgent import *
 from python.DiscreteAgent import *
 from python.hyperParams import hyperParams, module
-from python.Environment import *
+
+from python.DiscreteEnvironment import *
+from python.ContinuousEnvironment import *
 
 
 
@@ -23,9 +25,13 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
     args = parser.parse_args()
+
+    env = None
     
-    #env = Environment(module)
-    env = gym.make(module)
+    if("monresovelo" in module):
+        env = DiscreteEnvironment(module)
+    else:
+        env = gym.make(module)
 
     if("Continuous" in module):      
         agent = ContinuousAgent(env.action_space, env.observation_space, cuda)
@@ -66,7 +72,7 @@ if __name__ == '__main__':
                 if(len(agent.buffer)>hyperParams.LEARNING_START):
                     agent.learn(steps)
                 tab_rewards_accumulees.append(reward_accumulee)               
-                if(nb_reward < 100):
+                if(nb_reward < hyperParams.EPISODE_COUNT):
                     nb_reward+=1
                 else:
                     sum_reward -= tab_rewards_accumulees[len(tab_rewards_accumulees)-nb_reward+1]

@@ -4,19 +4,19 @@ import networkx as nx
 
 import python.metric as metric
 
-class ActionSpace:
+class ContinuousActionSpace:
     def __init__(self, shape, low, high):
         self.shape = shape
         self.low = low
         self.high = high
         
         
-class ObservationSpace:
+class ContinuousObservationSpace:
     def __init__(self, shape):
         self.shape = shape
         
 
-class Environment:
+class ContinuousEnvironment:
     
     def __init__(self, project_folder):       
         with open("files/"+project_folder+"/city_graphs/city.ox",'rb') as infile:
@@ -27,8 +27,8 @@ class Environment:
         
         print(self.compute_overlap())
             
-        self.action_space = ActionSpace([len(self.G.edges)], [-1], [1])
-        self.observation_space = ObservationSpace([len(self.G.edges)])
+        self.action_space = ContinuousActionSpace([len(self.G.edges)], [-1], [1])
+        self.observation_space = ContinuousObservationSpace([len(self.G.edges)])
         
         self.threshold = 0.99
         
