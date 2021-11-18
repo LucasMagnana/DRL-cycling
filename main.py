@@ -71,8 +71,10 @@ if __name__ == '__main__':
             if done or steps > max_steps:
                 if(len(agent.buffer)>hyperParams.LEARNING_START):
                     agent.learn(steps)
-                tab_rewards_accumulees.append(reward_accumulee)               
-                if(nb_reward < hyperParams.EPISODE_COUNT):
+                tab_rewards_accumulees.append(reward_accumulee)
+                if(agent.epsilon > 0):
+                    tab_noise.append(agent.epsilon)               
+                if(nb_reward < 100):
                     nb_reward+=1
                 else:
                     sum_reward -= tab_rewards_accumulees[len(tab_rewards_accumulees)-nb_reward+1]
@@ -85,9 +87,11 @@ if __name__ == '__main__':
     print("Average: ", avg_reward)
 
 
-    plt.plot(tab_rewards_accumulees)
+    plt.figure(figsize=(25, 12), dpi=80)
+    plt.plot(tab_rewards_accumulees, linewidth=1)
     plt.plot(tab_noise)
-    plt.ylabel('Reward Accumulée')
+    plt.ylabel('Reward Accumulée')       
+    plt.savefig("./images/"+module+".png")
     
     print("Saving...")
     torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'_target.n')
@@ -95,8 +99,7 @@ if __name__ == '__main__':
 
     with open('./trained_networks/'+module+'.hp', 'wb') as outfile:
         pickle.dump(hyperParams, outfile)
-        
-    plt.savefig("./images/"+module+".png")
+
 
     # Close the env and write monitor result info to disk
     env.close()

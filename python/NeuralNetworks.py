@@ -44,3 +44,29 @@ class Critic(nn.Module):
         out = nn.functional.relu(self.int(out))
         return self.out(out)
 
+
+
+class ActorRNN(nn.Module):
+
+    def __init__(self, size_ob, size_action, hp_saved=None): #for saved hyperparameters
+        super(ActorRNN, self).__init__()
+        if(hp_saved == None):
+            hyperParams=HP.hyperParams
+        else:
+            hyperParams=hp_saved
+        self.rnn = nn.GRU(1, hyperParams.HIDDEN_SIZE, hyperParams.NUM_RNN_LAYERS, batch_first=True)
+        self.int = nn.Linear(hyperParams.HIDDEN_SIZE+size_ob, hyperParams.ACT_INTER)
+        self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
+
+        self.hidden_size = hyperParams.HIDDEN_SIZE
+        self.seq_size = hyperParams.SEQ_SIZE
+        self.num_rnn_layers = hyperParams.NUM_RNN_LAYERS
+
+    def forward(self, path, state):
+        hidden = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
+        out, hn = self.rnn(path, hidden)
+        combined = torch.cat((hn.squeeze(0), state), 1)
+        out = self.int(combined)
+        out = self.out(out)
+        return out 
+
