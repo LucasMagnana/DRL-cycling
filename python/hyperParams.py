@@ -30,9 +30,6 @@ class DisHyperParams :
     def __init__(self):
         self.BUFFER_SIZE = 10000
         self.ALPHA = 0.05
-        self.EPSILON = 1.0
-        self.MIN_EPSILON = 0.01
-        self.EPSILON_DECAY = 0.999
         self.GAMMA = 0.9
         self.LR = 0.001
         self.BATCH_SIZE = 128
@@ -46,6 +43,10 @@ class DisHyperParams :
         self.EPISODE_COUNT = 10000
         self.MAX_STEPS = 1e25
         self.LEARNING_START = 0
+
+        self.EPSILON = 1.0
+        self.MIN_EPSILON = 0
+        self.EPSILON_DECAY = self.EPSILON/self.EPISODE_COUNT
 
 module = "monresovelo" #"LunarLanderContinuous-v2" 
 if("Continuous" in module):

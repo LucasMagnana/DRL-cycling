@@ -14,6 +14,8 @@ from python.hyperParams import hyperParams, module
 from python.DiscreteEnvironment import *
 from python.ContinuousEnvironment import *
 
+from test import test
+
 
 
 
@@ -21,10 +23,6 @@ from python.ContinuousEnvironment import *
 if __name__ == '__main__':
 
     cuda = torch.cuda.is_available()
-
-    parser = argparse.ArgumentParser(description=None)
-    parser.add_argument('env_id', nargs='?', default=module, help='Select the environment to run')
-    args = parser.parse_args()
 
     env = None
     
@@ -63,7 +61,7 @@ if __name__ == '__main__':
         steps=0
         while True:
             ob_prec = ob  
-            action = agent.act(ob, reward, done)
+            action = agent.act(ob)
             ob, reward, done, _ = env.step(action)
             agent.memorize(ob_prec, action, ob, reward, done)
             reward_accumulee += reward
@@ -84,7 +82,11 @@ if __name__ == '__main__':
           
     print("end:", dt.datetime.now())
 
-    print("Average: ", avg_reward)
+    #print("Average: ", avg_reward)
+
+    if("monresovelo" in module):
+        test()
+
 
 
     plt.figure(figsize=(25, 12), dpi=80)

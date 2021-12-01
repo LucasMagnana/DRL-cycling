@@ -8,29 +8,43 @@ import copy
 import numpy as np
 import torch
 
-from python.hyperParams import hyperParams
+from python.hyperParams import hyperParams as hp
 
 from python.NeuralNetworks import *
 
 class DiscreteAgent(object):
-    def __init__(self, action_space, observation_space, cuda):
+    def __init__(self, action_space, observation_space, cuda, hyperParams=None, actor_to_load=None):
+
+        if(hyperParams == None):
+            self.hyperParams = hp
+        else:
+            self.hyperParams = hyperParams
+            self.hyperParams.EPSILON = 0
+
         self.action_space = action_space    
         self.buffer = []
-        self.buffer_size = hyperParams.BUFFER_SIZE
+        self.buffer_size = self.hyperParams.BUFFER_SIZE
 
-        self.alpha = hyperParams.ALPHA
-        self.epsilon = hyperParams.EPSILON
-        self.gamma = hyperParams.GAMMA
+        self.alpha = self.hyperParams.ALPHA
+        self.epsilon = self.hyperParams.EPSILON
+        self.gamma = self.hyperParams.GAMMA
 
         self.actor = ActorRNN(observation_space.shape[0], action_space.n)
-        self.actor_target = copy.deepcopy(self.actor)
 
-        self.optimizer = torch.optim.Adam(self.actor.parameters(), hyperParams.LR) # smooth gradient descent
+        self.batch_size = self.hyperParams.BATCH_SIZE
+
+
+        if(actor_to_load != None):
+            self.actor.load_state_dict(torch.load(actor_to_load))
+            self.actor.eval()
+        
+        self.actor_target = copy.deepcopy(self.actor)
+        self.optimizer = torch.optim.Adam(self.actor.parameters(), self.hyperParams.LR) # smooth gradient descent
 
         
 
 
-    def act(self, observation, reward, done):
+    def act(self, observation):
         #return self.action_space.sample()
         tens_action = self.actor(torch.Tensor(observation[0]).unsqueeze(0), torch.Tensor(observation[1]).unsqueeze(0))
         tens_action = tens_action.squeeze()
@@ -40,10 +54,11 @@ class DiscreteAgent(object):
             return indices.item()
         return randint(0, tens_action.size()[0]-1)
 
-    def sample(self, n=hyperParams.BATCH_SIZE):
-        if(n > len(self.buffer)):
-            n = len(self.buffer)
-        return sample(self.buffer, n)
+    def sample(self):
+        if(len(self.buffer) < self.batch_size):
+            return sample(self.buffer, len(self.buffer))
+        else:
+            return sample(self.buffer, self.batch_size)
 
     def memorize(self, ob_prec, action, ob, reward, done):
         if(len(self.buffer) > self.buffer_size):
@@ -53,10 +68,13 @@ class DiscreteAgent(object):
     def learn(self, n_iter):
         #n_iter only used in continuousAgent
         loss = MSELoss()
-        if(self.epsilon > hyperParams.MIN_EPSILON):
-            self.epsilon *= hyperParams.EPSILON_DECAY
+        '''if(self.epsilon > self.hyperParams.MIN_EPSILON):
+            self.epsilon *= self.hyperParams.EPSILON_DECAY
         else:
-            self.epsilon = 0
+            self.epsilon = 0'''
+
+        self.epsilon -= self.hyperParams.EPSILON_DECAY
+
         spl = self.sample()
 
         tens_path = torch.Tensor([item[0][0] for item in spl])

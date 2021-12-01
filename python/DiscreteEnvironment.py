@@ -31,8 +31,11 @@ class DiscreteEnvironment:
         self.observation_space = DiscreteObservationSpace(2)
 
         
-    def reset(self):
-        self.original_path = random.choice(self.list_paths)
+    def reset(self, path=None):
+        if(path == None):
+            self.original_path = random.choice(self.list_paths)
+        else:
+            self.original_path = path
         self.state = [self.original_path[0][0], self.original_path[-1][1]]
         self.generated_path = [[self.original_path[0][0]]]
         return [self.get_padded_generated_path(), self.state]
@@ -46,7 +49,7 @@ class DiscreteEnvironment:
     def step(self, action):
         next_edge = list(self.G.edges(self.state[0]))[action] #we transform the action in a chosen edge
         done = False
-
+        
         if(next_edge[1] == self.state[-1]): #if the next node is the final node, high reward because the agent found the destination in the graph
             reward = +3
             done = True
@@ -60,9 +63,8 @@ class DiscreteEnvironment:
         else:
             print("ERROR IN REWARD'S CALCULATION")
 
-        if(not done):
-            self.state[0] = next_edge[1] #the actual node is now the one at the end of the chosen edge
-            self.generated_path.append([self.state[0]])
+        self.state[0] = next_edge[1] #the actual node is now the one at the end of the chosen edge
+        self.generated_path.append([self.state[0]])
 
         return [self.get_padded_generated_path(), self.state], reward, done, None
         
