@@ -40,13 +40,13 @@ class DisHyperParams :
         self.NUM_RNN_LAYERS = 1
 
 
-        self.EPISODE_COUNT = 10000
+        self.EPISODE_COUNT = 25000
         self.MAX_STEPS = 1e25
         self.LEARNING_START = 0
 
         self.EPSILON = 1.0
         self.MIN_EPSILON = 0
-        self.EPSILON_DECAY = self.EPSILON/self.EPISODE_COUNT
+        self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT*4/5)
 
 module = "monresovelo" #"LunarLanderContinuous-v2" 
 if("Continuous" in module):

@@ -84,11 +84,6 @@ if __name__ == '__main__':
 
     #print("Average: ", avg_reward)
 
-    if("monresovelo" in module):
-        test()
-
-
-
     plt.figure(figsize=(25, 12), dpi=80)
     plt.plot(tab_rewards_accumulees, linewidth=1)
     plt.plot(tab_noise)
@@ -101,6 +96,10 @@ if __name__ == '__main__':
 
     with open('./trained_networks/'+module+'.hp', 'wb') as outfile:
         pickle.dump(hyperParams, outfile)
+
+
+    if("monresovelo" in module):
+        test()
 
 
     # Close the env and write monitor result info to disk
