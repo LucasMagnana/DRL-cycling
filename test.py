@@ -54,9 +54,13 @@ def test(module="monresovelo"):
                 
                 generated_path = []
                 for n in env.generated_path:
-                    generated_path.append(n[0])
+                    generated_path.append(n)
 
-                sum_overlap += metric.get_overlap(generated_path, original_path, env.G)
+                overlap = metric.get_overlap(generated_path, original_path, env.G)
+
+                #print(generated_path, original_path, overlap)
+
+                sum_overlap += overlap
                 sum_reward += reward_accumulee
                 break
 

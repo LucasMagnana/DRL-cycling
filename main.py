@@ -27,80 +27,70 @@ if __name__ == '__main__':
     env = None
     
     if("monresovelo" in module):
-        env = DiscreteEnvironment(module)
+        env = DiscreteEnvironment(module) #custom env
     else:
-        env = gym.make(module)
+        env = gym.make(module) #gym env
 
-    if("Continuous" in module):      
+    if("Continuous" in module): #agents are not the same wether the action space is continuous or discrete     
         agent = ContinuousAgent(env.action_space, env.observation_space, cuda)
     else:
         agent = DiscreteAgent(env.action_space, env.observation_space, cuda)
 
-    reward = 0
-    done = False
-
-
-    tab_rewards_accumulees = []
+    tab_sum_rewards = []
     tab_noise = []
-
-    sum_reward = 0
-    nb_reward = 0
-    avg_reward = 0
-    nb_episodes = 0
-
-    episode_count = hyperParams.EPISODE_COUNT
-    max_steps = hyperParams.MAX_STEPS
     
     print("start:", dt.datetime.now())
 
-    for e in range(1, episode_count): #for i in range(episode_count):
-        if(e%(episode_count//4) == 0):
+    for e in range(1, hyperParams.EPISODE_COUNT):
+
+        if(e%(hyperParams.EPISODE_COUNT//4) == 0):
             print("1/4:", dt.datetime.now())
+
         ob = env.reset()
-        reward_accumulee=0
+        sum_rewards=0
         steps=0
         while True:
             ob_prec = ob  
             action = agent.act(ob)
             ob, reward, done, _ = env.step(action)
             agent.memorize(ob_prec, action, ob, reward, done)
-            reward_accumulee += reward
+            sum_rewards += reward
             steps+=1
-            if done or steps > max_steps:
+            if done or steps > hyperParams.MAX_STEPS:
                 if(len(agent.buffer)>hyperParams.LEARNING_START):
                     agent.learn(steps)
-                tab_rewards_accumulees.append(reward_accumulee)
+                tab_sum_rewards.append(sum_rewards)
                 if(agent.epsilon > 0):
                     tab_noise.append(agent.epsilon)               
-                if(nb_reward < 100):
-                    nb_reward+=1
-                else:
-                    sum_reward -= tab_rewards_accumulees[len(tab_rewards_accumulees)-nb_reward+1]
-                sum_reward += reward_accumulee
-                avg_reward = sum_reward/nb_reward
                 break
           
     print("end:", dt.datetime.now())
 
-    #print("Average: ", avg_reward)
-
+    
+    #plot the sums of rewards and the noise (noise shouldnt be in the same graph but for now it's good)
     plt.figure(figsize=(25, 12), dpi=80)
-    plt.plot(tab_rewards_accumulees, linewidth=1)
+    plt.plot(tab_sum_rewards, linewidth=1)
     plt.plot(tab_noise)
     plt.ylabel('Reward Accumulée')       
     plt.savefig("./images/"+module+".png")
+
+    avg_last_sum_rewards = sum(tab_sum_rewards[-100:])/100
+
+    print("Average last 100 sums of reward:", avg_last_sum_rewards)
     
+    #save the neural networks of the agent
     print("Saving...")
     torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'_target.n')
     torch.save(agent.actor.state_dict(), './trained_networks/'+module+'.n')
 
+    #save the hyper parameters (for the tests and just in case)
     with open('./trained_networks/'+module+'.hp', 'wb') as outfile:
         pickle.dump(hyperParams, outfile)
 
 
-    if("monresovelo" in module):
+    if("monresovelo" in module): #tests only work for the custom env (so will the project in the end)
         test()
 
 
-    # Close the env and write monitor result info to disk
+    # Close the env (only useful for the gym envs for now)
     env.close()

@@ -25,30 +25,61 @@ class ContHyperParams :
         self.EXPLORATION_NOISE = 0.1
 
 
-
 class DisHyperParams :
     def __init__(self):
-        self.BUFFER_SIZE = 10000
-        self.ALPHA = 0.05
-        self.GAMMA = 0.9
-        self.LR = 0.001
-        self.BATCH_SIZE = 128
+        self.BUFFER_SIZE = 1e25 #max size of the agent's replays buffer
+        self.ALPHA = 0.05 #
+        self.GAMMA = 0.9 #discount factor
+        self.LR = 0.001 #learning rate of the actor
+        self.BATCH_SIZE = 128 #number of replays processed by learning step
 
-        self.SEQ_SIZE = 10
-        self.HIDDEN_SIZE = 256
-        self.ACT_INTER = 256
+        self.HIDDEN_SIZE = 256 #size of the first hidden layer of the actor
+        self.ACT_INTER = 256 #size of the second hidden of the actor
+
+
+        self.EPISODE_COUNT = 50000 #total number of episodes
+        self.MAX_STEPS = 1e25 #max steps by episode
+        self.LEARNING_START = 0 #number of steps before the first learning
+
+        self.EPSILON = 1.0 #noise coefficient
+        self.MIN_EPSILON = 0
+        self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT*4/5) #linear decay (EPS-=EPS_DECAY at each learning step)
+
+
+        #specific to custom env
+        
+        self.SEQ_SIZE = 32
         self.NUM_RNN_LAYERS = 1
 
 
-        self.EPISODE_COUNT = 25000
-        self.MAX_STEPS = 1e25
+#Cartpole hyper parameters (solves it but not optimal)
+'''class DisHyperParams :
+    def __init__(self):
+        self.BUFFER_SIZE = 1e25 
+        self.ALPHA = 0.05 #
+        self.GAMMA = 0.9
+        self.LR = 0.001
+        self.BATCH_SIZE = 32
+
+        self.HIDDEN_SIZE = 32
+        self.ACT_INTER = 32
+
+        self.EPISODE_COUNT = 3000
+        self.MAX_STEPS = 1000
         self.LEARNING_START = 0
 
         self.EPSILON = 1.0
         self.MIN_EPSILON = 0
         self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT*4/5)
 
-module = "monresovelo" #"LunarLanderContinuous-v2" 
+        #specific to custom env
+
+        self.NUM_RNN_LAYERS = 1
+        self.SEQ_SIZE = 32'''
+
+
+module = "monresovelo" #"CartPole-v1"
+
 if("Continuous" in module):
     hyperParams = ContHyperParams()
 else:

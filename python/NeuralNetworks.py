@@ -8,14 +8,14 @@ import python.hyperParams as HP
 
 class Actor(nn.Module):
 
-    def __init__(self, size_ob, size_action, max_action=1, hp_saved=None, tanh=False): #for saved hyperparameters
+    def __init__(self, size_ob, size_action, max_action=1, hp_loaded=None, tanh=False): #for saved hyperparameters
         super(Actor, self).__init__()
-        if(hp_saved == None):
+        if(hp_loaded == None):
             hyperParams=HP.hyperParams
         else:
-            hyperParams=hp_saved
-        self.inp = nn.Linear(size_ob, hyperParams.ACT_IN)
-        self.int = nn.Linear(hyperParams.ACT_IN, hyperParams.ACT_INTER)
+            hyperParams=hp_loaded
+        self.inp = nn.Linear(size_ob, hyperParams.HIDDEN_SIZE)
+        self.int = nn.Linear(hyperParams.HIDDEN_SIZE, hyperParams.ACT_INTER)
         self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
         self.max_action = max_action
         self.tanh = tanh
@@ -27,6 +27,37 @@ class Actor(nn.Module):
             return torch.tanh(self.out(out)*self.max_action)
         else:
             return self.out(out)*self.max_action
+
+
+
+class ActorRNN(nn.Module):
+
+    def __init__(self, size_ob, size_action, hp_loaded=None): #for saved hyperparameters
+        super(ActorRNN, self).__init__()
+        if(hp_loaded == None):
+            hyperParams=HP.hyperParams
+        else:
+            hyperParams=hp_loaded
+
+        self.hyperParams = hyperParams
+        self.rnn = nn.GRU(1, hyperParams.HIDDEN_SIZE, hyperParams.NUM_RNN_LAYERS, batch_first=True)
+        self.int = nn.Linear(hyperParams.HIDDEN_SIZE+size_ob, hyperParams.ACT_INTER)
+        self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
+
+        self.hidden_size = hyperParams.HIDDEN_SIZE
+        self.seq_size = hyperParams.SEQ_SIZE
+        self.num_rnn_layers = hyperParams.NUM_RNN_LAYERS
+
+    def forward(self, ob):
+        path, state = ob.split(self.hyperParams.SEQ_SIZE, dim=1)
+        path = path.unsqueeze(2)
+        hidden = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
+        out, hn = self.rnn(path, hidden)
+        combined = torch.cat((hn.squeeze(0), state), 1)
+        out = self.int(combined)
+        out = self.out(out)
+        return out 
+
 
 
 
@@ -43,30 +74,4 @@ class Critic(nn.Module):
         out = nn.functional.relu(self.inp(torch.cat((ob, action), dim=1)))
         out = nn.functional.relu(self.int(out))
         return self.out(out)
-
-
-
-class ActorRNN(nn.Module):
-
-    def __init__(self, size_ob, size_action, hp_saved=None): #for saved hyperparameters
-        super(ActorRNN, self).__init__()
-        if(hp_saved == None):
-            hyperParams=HP.hyperParams
-        else:
-            hyperParams=hp_saved
-        self.rnn = nn.GRU(1, hyperParams.HIDDEN_SIZE, hyperParams.NUM_RNN_LAYERS, batch_first=True)
-        self.int = nn.Linear(hyperParams.HIDDEN_SIZE+size_ob, hyperParams.ACT_INTER)
-        self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
-
-        self.hidden_size = hyperParams.HIDDEN_SIZE
-        self.seq_size = hyperParams.SEQ_SIZE
-        self.num_rnn_layers = hyperParams.NUM_RNN_LAYERS
-
-    def forward(self, path, state):
-        hidden = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
-        out, hn = self.rnn(path, hidden)
-        combined = torch.cat((hn.squeeze(0), state), 1)
-        out = self.int(combined)
-        out = self.out(out)
-        return out 
 
