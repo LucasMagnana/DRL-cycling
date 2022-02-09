@@ -27,17 +27,16 @@ class ContHyperParams :
 
 class DisHyperParams :
     def __init__(self):
-        self.BUFFER_SIZE = 1e25 #max size of the agent's replays buffer
+        self.BUFFER_SIZE = 25000 #max size of the agent's replays buffer
         self.ALPHA = 0.05 #
         self.GAMMA = 0.9 #discount factor
         self.LR = 0.001 #learning rate of the actor
         self.BATCH_SIZE = 128 #number of replays processed by learning step
 
         self.HIDDEN_SIZE = 256 #size of the first hidden layer of the actor
-        self.ACT_INTER = 256 #size of the second hidden of the actor
+        self.ACT_INTER = 128
 
-
-        self.EPISODE_COUNT = 50000 #total number of episodes
+        self.EPISODE_COUNT = 175000 #total number of episodes
         self.MAX_STEPS = 1e25 #max steps by episode
         self.LEARNING_START = 0 #number of steps before the first learning
 

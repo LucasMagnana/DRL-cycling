@@ -52,8 +52,9 @@ class ActorRNN(nn.Module):
         path, state = ob.split(self.hyperParams.SEQ_SIZE, dim=1)
         path = path.unsqueeze(2)
         hidden = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
+        #cell = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
         out, hn = self.rnn(path, hidden)
-        combined = torch.cat((hn.squeeze(0), state), 1)
+        combined = torch.cat((out[:, -1], state), 1)
         out = self.int(combined)
         out = self.out(out)
         return out 

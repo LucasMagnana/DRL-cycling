@@ -61,7 +61,7 @@ class DiscreteEnvironment:
             reward = -3
             done = True
         elif(next_edge in self.original_path): #if the edge is used by the original path, positive reward because the agent is on the good way
-            reward = +1
+            reward = 1
         elif(next_edge not in self.original_path): #if not, negative value, the agent is on a wrong way
             reward = -1
         else:
