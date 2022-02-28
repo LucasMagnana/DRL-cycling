@@ -93,8 +93,16 @@ class DiscreteAgent(object):
         tens_qvalue = self.actor(tens_state) #compute the qvalues for all the actual states
         tens_qvalue = torch.index_select(tens_qvalue, 1, tens_action).diag() #select the qvalues corresponding to the chosen actions
 
-        tens_next_qvalue = self.actor_target(tens_state_next) #compute all the qvalues for all the "next states"        
-        tens_next_qvalue = torch.max(tens_next_qvalue, 1)[0] #select the max qvalues for all the next states
+        if(self.hyperParams.DOUBLE_DQN == False):
+            # Simple DQN
+            tens_next_qvalue = self.actor_target(tens_state_next) #compute all the qvalues for all the "next states"
+            (tens_next_qvalue, _) = torch.max(tens_next_qvalue, 1) #select the max qvalues for all the next states
+        else:
+            # Double DQN
+            tens_next_qvalue = self.actor(tens_state_next) #compute all the qvalues for all the "next states" with the ppal network
+            (_, tens_next_action) = torch.max(tens_next_qvalue, 1) #returns the indices of the max qvalues for all the next states(to choose the next actions)
+            tens_next_qvalue = self.actor_target(tens_state_next) #compute all the qvalues for all the "next states" with the target network
+            tens_next_qvalue = torch.index_select(tens_next_qvalue, 1, tens_next_action).diag() #select the qvalues corresponding to the chosen next actions
 
         self.optimizer.zero_grad() #reset the gradient
         tens_loss = loss(tens_qvalue, tens_reward+(self.gamma*tens_next_qvalue)*tens_done) #calculate the loss

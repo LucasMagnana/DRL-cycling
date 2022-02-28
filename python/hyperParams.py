@@ -44,11 +44,10 @@ class DisHyperParams :
         self.MIN_EPSILON = 0
         self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT*4/5) #linear decay (EPS-=EPS_DECAY at each learning step)
 
-
-        #specific to custom env
-        
+        #specific to custom env        
         self.SEQ_SIZE = 32
         self.NUM_RNN_LAYERS = 1
+        self.DOUBLE_DQN = False
 
 
 #Cartpole hyper parameters (solves it but not optimal)
