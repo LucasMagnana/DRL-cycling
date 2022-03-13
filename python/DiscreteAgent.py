@@ -9,11 +9,10 @@ import numpy as np
 import torch
 
 from python.hyperParams import hyperParams as hp
-
 from python.NeuralNetworks import Actor, ActorRNN
 
 class DiscreteAgent(object):
-    def __init__(self, action_space, observation_space, cuda, hyperParams=None, actor_to_load=None):
+    def __init__(self, action_space, observation_space, cuda=False, hyperParams=None, actor_to_load=None, RNN=False):
 
         if(hyperParams == None): #use the good hyper parameters (loaded if it's a test, written in the code if it's a training)
             self.hyperParams = hp
@@ -30,8 +29,10 @@ class DiscreteAgent(object):
         self.epsilon = self.hyperParams.EPSILON
         self.gamma = self.hyperParams.GAMMA
 
-        self.actor = ActorRNN(observation_space.shape[0], action_space.n) #for custom env
-        #self.actor = Actor(observation_space.shape[0], action_space.n) #for cartpole
+        if(RNN):
+            self.actor = ActorRNN(observation_space.shape[0], action_space.n) #for custom env
+        else:
+            self.actor = Actor(observation_space.shape[0], action_space.n) #for cartpole
 
         self.batch_size = self.hyperParams.BATCH_SIZE
 
@@ -44,12 +45,14 @@ class DiscreteAgent(object):
 
         self.optimizer = torch.optim.Adam(self.actor.parameters(), self.hyperParams.LR) # smooth gradient descent
 
+        self.observation_space = observation_space
+
         
 
 
     def act(self, observation):
         #return self.action_space.sample()
-        tens_qvalue = self.actor(torch.Tensor(observation).unsqueeze(0)) #compute the qvalues for the observation
+        tens_qvalue = self.actor(observation) #compute the qvalues for the observation
         tens_qvalue = tens_qvalue.squeeze()
         rand = random()
         if(rand > self.epsilon): #noise management
@@ -68,7 +71,7 @@ class DiscreteAgent(object):
             self.buffer.pop(0)
         self.buffer.append([ob_prec, action, ob, reward, not(done)])
 
-    def learn(self, n_iter): #n_iter only used in continuousAgent, not here
+    def learn(self, n_iter=None):
 
         #previous noise decaying method, works well with cartpole
         '''if(self.epsilon > self.hyperParams.MIN_EPSILON):
@@ -84,13 +87,28 @@ class DiscreteAgent(object):
 
         spl = self.sample()  #create a batch of experiences
 
-        tens_state = torch.Tensor([item[0] for item in spl]) #get all the actual states
+        if(isinstance(self.actor, ActorRNN)):
+            tens_path = torch.Tensor([item[0][0] for item in spl])
+            tens_state = torch.Tensor([item[0][1] for item in spl]) 
+            tens_state = torch.Tensor([tens_path, tens_state])
+        else:
+            tens_state = torch.Tensor([item[0] for item in spl])
+
         tens_action = torch.LongTensor([item[1] for item in spl]) #get all the actions chosen by the agent
-        tens_state_next = torch.Tensor([item[2] for item in spl]) #get all the states sent by the env after the actions
+
+        if(isinstance(self.actor, ActorRNN)):
+            tens_path_next = torch.Tensor([item[2][0] for item in spl])
+            tens_state_next = torch.Tensor([item[2][1] for item in spl])
+            tens_state_next = torch.Tensor([tens_path_next, tens_state_next])
+        else:
+            tens_state_next = torch.Tensor([item[2] for item in spl])
+
         tens_reward = torch.Tensor([item[3] for item in spl]) #get all the rewards
+        
         tens_done = torch.Tensor([item[4] for item in spl]) #for each experience, get if the state after the action is final
 
         tens_qvalue = self.actor(tens_state) #compute the qvalues for all the actual states
+
         tens_qvalue = torch.index_select(tens_qvalue, 1, tens_action).diag() #select the qvalues corresponding to the chosen actions
 
         if(self.hyperParams.DOUBLE_DQN == False):

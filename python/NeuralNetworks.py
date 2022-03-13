@@ -21,6 +21,7 @@ class Actor(nn.Module):
         self.tanh = tanh
 
     def forward(self, ob):
+        ob = torch.Tensor(ob)
         out = nn.functional.relu(self.inp(ob))
         out = nn.functional.relu(self.int(out))
         if(self.tanh):
@@ -40,7 +41,7 @@ class ActorRNN(nn.Module):
             hyperParams=hp_loaded
 
         self.hyperParams = hyperParams
-        self.rnn = nn.GRU(1, hyperParams.HIDDEN_SIZE, hyperParams.NUM_RNN_LAYERS, batch_first=True)
+        self.rnn = nn.GRU(2, hyperParams.HIDDEN_SIZE, hyperParams.NUM_RNN_LAYERS, batch_first=True)
         self.int = nn.Linear(hyperParams.HIDDEN_SIZE+size_ob, hyperParams.ACT_INTER)
         self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
 
@@ -48,9 +49,14 @@ class ActorRNN(nn.Module):
         self.seq_size = hyperParams.SEQ_SIZE
         self.num_rnn_layers = hyperParams.NUM_RNN_LAYERS
 
+
     def forward(self, ob):
-        path, state = ob.split(self.hyperParams.SEQ_SIZE, dim=1)
-        path = path.unsqueeze(2)
+        path = torch.Tensor(ob[0]) 
+        state = torch.Tensor(ob[1]) 
+        if(len(path.shape) == 2):
+            path = path.unsqueeze(0)
+        if(len(state.shape) == 1):
+            state = state.unsqueeze(0)
         hidden = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
         #cell = torch.zeros(self.num_rnn_layers, path.shape[0], self.hidden_size)
         out, hn = self.rnn(path, hidden)

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     if("Continuous" in module): #agents are not the same wether the action space is continuous or discrete     
         agent = ContinuousAgent(env.action_space, env.observation_space, cuda)
     else:
-        agent = DiscreteAgent(env.action_space, env.observation_space, cuda)
+        agent = DiscreteAgent(env.action_space, env.observation_space, cuda=cuda)
 
     tab_sum_rewards = []
     tab_noise = []
@@ -50,15 +50,15 @@ if __name__ == '__main__':
         sum_rewards=0
         steps=0
         while True:
-            ob_prec = ob  
+            ob_prec = ob   
             action = agent.act(ob)
             ob, reward, done, _ = env.step(action)
             agent.memorize(ob_prec, action, ob, reward, done)
             sum_rewards += reward
             steps+=1
+            if(len(agent.buffer)>hyperParams.LEARNING_START):
+                agent.learn(steps)
             if done or steps > hyperParams.MAX_STEPS:
-                if(len(agent.buffer)>hyperParams.LEARNING_START):
-                    agent.learn(steps)
                 tab_sum_rewards.append(sum_rewards)
                 if(agent.epsilon > 0):
                     tab_noise.append(agent.epsilon)               

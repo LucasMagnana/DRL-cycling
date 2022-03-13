@@ -2,3 +2,4 @@ cache/
 data/
 *.pyc
 videos/
+.ipynb_checkpoints/

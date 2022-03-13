@@ -33,21 +33,24 @@ class DisHyperParams :
         self.LR = 0.001 #learning rate of the actor
         self.BATCH_SIZE = 128 #number of replays processed by learning step
 
-        self.HIDDEN_SIZE = 256 #size of the first hidden layer of the actor
-        self.ACT_INTER = 128
+        self.HIDDEN_SIZE = 64 #size of the first hidden layer of the actor
+        self.ACT_INTER = 32
 
-        self.EPISODE_COUNT = 175000 #total number of episodes
-        self.MAX_STEPS = 1e25 #max steps by episode
-        self.LEARNING_START = 0 #number of steps before the first learning
+        self.EPISODE_COUNT = 15000 #total number of episodes
+        self.MAX_STEPS = 100 #max steps by episode
+        self.LEARNING_START = 250 #number of steps before the first learning
 
         self.EPSILON = 1.0 #noise coefficient
         self.MIN_EPSILON = 0
-        self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT*4/5) #linear decay (EPS-=EPS_DECAY at each learning step)
+        self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT) #linear decay (EPS-=EPS_DECAY at each learning step)
 
         #specific to custom env        
-        self.SEQ_SIZE = 32
+        self.SEQ_SIZE = 16
         self.NUM_RNN_LAYERS = 1
         self.DOUBLE_DQN = False
+
+        self.RANGE_STEP_TO_WAIT = [3, 9]
+        self.MIN_NUM_AGENT_IN_GROUP = 2
 
 
 #Cartpole hyper parameters (solves it but not optimal)
