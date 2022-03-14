@@ -40,6 +40,7 @@ class MesaAgent(Agent):
         self.n_step = 0
 
         self.reward = 0
+        self.ob = None
 
 
 
@@ -105,7 +106,7 @@ class MesaAgent(Agent):
         return padded_path_taken
 
 
-    def construct_observation(self):
+    def construct_and_save_observation(self):
         observation = [self.pos[0]+1, self.pos[1]+1, self.next_position[0]+1, self.next_position[1]+1]
 
         for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
@@ -117,7 +118,7 @@ class MesaAgent(Agent):
         while(len(observation)<self.model.decision_maker.observation_space.shape[0]):
             observation.append(0)
         #print(observation)
-        return observation #[self.get_padded_path_taken(), observation]
+        self.ob = observation #[self.get_padded_path_taken(), observation]
 
 
     def calculate_reward(self):
@@ -147,10 +148,11 @@ class MesaAgent(Agent):
 
 
         if(self.n_step >= self.next_movement_step):
-
-
-            self.ob_prec = self.construct_observation()
-            self.action = self.model.decision_maker.act(self.ob_prec)
+            if(self.ob == None):
+                self.construct_and_save_observation()
+            self.action = self.model.decision_maker.act(self.ob)
+            self.ob_prec = self.ob
+            self.ob = None
             self.change_next_position(self.action)
             self.model.grid.move_agent(self, self.next_position)
             self.path_taken.append(self.next_position)
@@ -221,8 +223,8 @@ class MesaModel(Model):
             if(a.moved):
                 need_learning = True
                 done, reward = a.calculate_reward()
-                ob = a.construct_observation()
-                self.decision_maker.memorize(a.ob_prec, a.action, ob, reward, done)
+                a.construct_and_save_observation()
+                self.decision_maker.memorize(a.ob_prec, a.action, a.ob, reward, done)
                 if(done):
                     self.mean_reward += (a.reward/self.N)
                 if(a.pos == a.destination):
