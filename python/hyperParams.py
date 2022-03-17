@@ -27,14 +27,14 @@ class ContHyperParams :
 
 class DisHyperParams :
     def __init__(self):
-        self.BUFFER_SIZE = 25000 #max size of the agent's replays buffer
+        self.BUFFER_SIZE = 1000000  #max size of the agent's replays buffer
         self.ALPHA = 0.05 #
         self.GAMMA = 0.9 #discount factor
         self.LR = 0.001 #learning rate of the actor
-        self.BATCH_SIZE = 128 #number of replays processed by learning step
+        self.BATCH_SIZE = 256 #number of replays processed by learning step
 
-        self.HIDDEN_SIZE = 64 #size of the first hidden layer of the actor
-        self.ACT_INTER = 32
+        self.HIDDEN_SIZE = 128 #size of the first hidden layer of the actor
+        self.ACT_INTER = 64
 
         self.EPISODE_COUNT = 15000 #total number of episodes
         self.MAX_STEPS = 100 #max steps by episode
@@ -42,7 +42,7 @@ class DisHyperParams :
 
         self.EPSILON = 1.0 #noise coefficient
         self.MIN_EPSILON = 0
-        self.EPSILON_DECAY = self.EPSILON/(self.EPISODE_COUNT) #linear decay (EPS-=EPS_DECAY at each learning step)
+        self.EPSILON_DECAY = self.EPSILON/(150000) #linear decay (EPS-=EPS_DECAY at each learning step)
 
         #specific to custom env        
         self.SEQ_SIZE = 16

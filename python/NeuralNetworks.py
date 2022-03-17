@@ -14,6 +14,7 @@ class Actor(nn.Module):
             hyperParams=HP.hyperParams
         else:
             hyperParams=hp_loaded
+
         self.inp = nn.Linear(size_ob, hyperParams.HIDDEN_SIZE)
         self.int = nn.Linear(hyperParams.HIDDEN_SIZE, hyperParams.ACT_INTER)
         self.out = nn.Linear(hyperParams.ACT_INTER, size_action)
@@ -21,7 +22,7 @@ class Actor(nn.Module):
         self.tanh = tanh
 
     def forward(self, ob):
-        ob = torch.Tensor(ob)
+        ob = ob.float()
         out = nn.functional.relu(self.inp(ob))
         out = nn.functional.relu(self.int(out))
         if(self.tanh):
@@ -50,9 +51,10 @@ class ActorRNN(nn.Module):
         self.num_rnn_layers = hyperParams.NUM_RNN_LAYERS
 
 
+
     def forward(self, ob):
-        path = torch.Tensor(ob[0]) 
-        state = torch.Tensor(ob[1]) 
+        path = ob[0]
+        state = ob[1]
         if(len(path.shape) == 2):
             path = path.unsqueeze(0)
         if(len(state.shape) == 1):

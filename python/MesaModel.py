@@ -22,10 +22,6 @@ class MesaAgent(Agent):
 
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
-        if(unique_id == 0):
-            self.destination = ((model.grid.width-1)//2, model.grid.height-1)
-        else:
-            self.destination = ((model.grid.width-1)//2+1, model.grid.height-1)
 
         self.shortest_path = None
         self.next_position = None
@@ -88,11 +84,13 @@ class MesaAgent(Agent):
                 self.next_position = (self.pos[0], self.pos[1]-1)
             else:
                 self.next_position = (self.pos[0], self.pos[1]+1)
-        else:
+        elif(action==3):
             if(self.pos[1] == 0):
                 self.next_position = (self.pos[0], self.pos[1]+1)
             else:
                 self.next_position = (self.pos[0], self.pos[1]-1)
+        else:
+            self.next_position = (self.pos[0], self.pos[1])
 
         self.compute_shortest_path()
 
@@ -180,10 +178,11 @@ class MesaAgent(Agent):
 class MesaModel(Model):
     """A model with some number of agents."""
 
-    def __init__(self, N, width, height, waiting_dict, decision_maker, list_rewards):
+    def __init__(self, N, width, height, waiting_dict, decision_maker, list_rewards, testing):
         super().__init__()
         self.num_agents = N
         self.schedule = RandomActivation(self)
+        self.testing = testing
 
         self.grid = MultiGrid(width, height, True)
         
@@ -191,11 +190,23 @@ class MesaModel(Model):
         for i in range(self.num_agents):
             a = MesaAgent(i, self)
             self.schedule.add(a)
-            
-            if(i == 0):
-                self.grid.place_agent(a, (0, 1))
+
+            if(self.testing):            
+                if(i == 0):
+                    self.grid.place_agent(a, (0, 1))
+                    a.destination = ((self.grid.width-1)//2, self.grid.height-1)
+                else:
+                    self.grid.place_agent(a, (self.grid.width-1, 0))
+                    a.destination = ((self.grid.width-1)//2+1, self.grid.height-1)
+
             else:
-                self.grid.place_agent(a, (self.grid.width-1, 0))
+                pos=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
+                self.grid.place_agent(a, pos)
+                dest=pos
+                while(dest==pos):
+                    dest=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
+                
+                a.destination=dest
 
             self.list_agents.append(a)
 
@@ -240,14 +251,14 @@ class MesaModel(Model):
 
         self.list_agents = next_list_agents
 
+        if(need_learning and len(self.decision_maker.buffer) > hyperParams.LEARNING_START):
+            self.decision_maker.learn()
 
         if(len(self.list_agents) == 0 or self.n_iter >= hyperParams.MAX_STEPS):
             for a in self.list_agents:
                 self.mean_reward += (a.reward/self.N)
             self.running = False
             self.list_rewards.append(self.mean_reward)
-            if(len(self.decision_maker.buffer) > hyperParams.LEARNING_START):
-                self.decision_maker.learn()
             #print("mean :", self.mean_reward)
 
 

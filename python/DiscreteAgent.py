@@ -29,10 +29,12 @@ class DiscreteAgent(object):
         self.epsilon = self.hyperParams.EPSILON
         self.gamma = self.hyperParams.GAMMA
 
+        self.device = torch.device("cuda" if cuda else "cpu")
+
         if(RNN):
-            self.actor = ActorRNN(observation_space.shape[0], action_space.n) #for custom env
+            self.actor = ActorRNN(observation_space.shape[0], action_space.n).to(self.device) #for custom env
         else:
-            self.actor = Actor(observation_space.shape[0], action_space.n) #for cartpole
+            self.actor = Actor(observation_space.shape[0], action_space.n).to(self.device) #for cartpole
 
         self.batch_size = self.hyperParams.BATCH_SIZE
 
@@ -52,6 +54,10 @@ class DiscreteAgent(object):
 
     def act(self, observation):
         #return self.action_space.sample()
+        if(isinstance(self.actor, ActorRNN)):
+            observation=[torch.tensor(observation[0], device=self.device), torch.tensor(observation[1], device=self.device)]
+        else:
+            observation = torch.tensor(observation, device=self.device)
         tens_qvalue = self.actor(observation) #compute the qvalues for the observation
         tens_qvalue = tens_qvalue.squeeze()
         rand = random()
@@ -69,6 +75,17 @@ class DiscreteAgent(object):
     def memorize(self, ob_prec, action, ob, reward, done):
         if(len(self.buffer) > self.buffer_max_size): #delete the first element if the buffer is at max size 
             self.buffer.pop(0)
+
+        '''if(isinstance(self.actor, ActorRNN)):
+            ob_prec=[torch.tensor(ob_prec[0], device=self.device), torch.tensor(ob_prec[1], device=self.device)]
+            ob=[torch.tensor(ob[0], device=self.device), torch.tensor(ob[1], device=self.device)]
+        else:
+            ob_prec=torch.tensor(ob_prec, device=self.device)
+            ob=torch.tensor(ob, device=self.device)
+        action=torch.tensor(action, device=self.device)
+        reward=torch.tensor(reward, device=self.device)
+        done=torch.tensor(not(done), device=self.device)
+        self.buffer.append([ob_prec, action, ob, reward, done])'''
         self.buffer.append([ob_prec, action, ob, reward, not(done)])
 
     def learn(self, n_iter=None):
@@ -82,30 +99,47 @@ class DiscreteAgent(object):
         
         #actual noise decaying method, works well with the custom env
         self.epsilon -= self.hyperParams.EPSILON_DECAY
+        if(self.epsilon<self.hyperParams.MIN_EPSILON):
+            self.epsilon=self.hyperParams.MIN_EPSILON
 
         loss = MSELoss()
 
         spl = self.sample()  #create a batch of experiences
 
-        if(isinstance(self.actor, ActorRNN)):
-            tens_path = torch.Tensor([item[0][0] for item in spl])
-            tens_state = torch.Tensor([item[0][1] for item in spl]) 
-            tens_state = torch.Tensor([tens_path, tens_state])
+        spl=list(zip(*spl))
+
+        tens_state=torch.tensor(spl[0], device=self.device)
+
+        tens_action=torch.tensor(spl[1], device=self.device)
+        tens_action=tens_action.long()
+
+        tens_state_next=torch.tensor(spl[2], device=self.device)
+
+        tens_reward=torch.tensor(spl[3], device=self.device)
+
+        tens_done=torch.tensor(spl[4], device=self.device)
+
+
+        '''if(isinstance(self.actor, ActorRNN)):
+            tens_path = torch.tensor([item[0][0] for item in spl], device=self.device)
+            tens_state = torch.tensor([item[0][1] for item in spl], device=self.device) 
+            tens_state = torch.tensor([tens_path, tens_state], device=self.device)
         else:
-            tens_state = torch.Tensor([item[0] for item in spl])
+            tens_state = torch.tensor([item[0] for item in spl], device=self.device)
 
-        tens_action = torch.LongTensor([item[1] for item in spl]) #get all the actions chosen by the agent
+        tens_action = torch.tensor([item[1] for item in spl], device=self.device) #get all the actions chosen by the agent
+        tens_action.long()
 
         if(isinstance(self.actor, ActorRNN)):
-            tens_path_next = torch.Tensor([item[2][0] for item in spl])
-            tens_state_next = torch.Tensor([item[2][1] for item in spl])
-            tens_state_next = torch.Tensor([tens_path_next, tens_state_next])
+            tens_path_next = torch.tensor([item[2][0] for item in spl], device=self.device)
+            tens_state_next = torch.tensor([item[2][1] for item in spl], device=self.device)
+            tens_state_next = torch.tensor([tens_path_next, tens_state_next], device=self.device)
         else:
-            tens_state_next = torch.Tensor([item[2] for item in spl])
+            tens_state_next = torch.tensor([item[2] for item in spl], device=self.device)
 
-        tens_reward = torch.Tensor([item[3] for item in spl]) #get all the rewards
+        tens_reward = torch.tensor([item[3] for item in spl], device=self.device) #get all the rewards
         
-        tens_done = torch.Tensor([item[4] for item in spl]) #for each experience, get if the state after the action is final
+        tens_done = torch.tensor([item[4] for item in spl], device=self.device) #for each experience, get if the state after the action is final'''
 
         tens_qvalue = self.actor(tens_state) #compute the qvalues for all the actual states
 

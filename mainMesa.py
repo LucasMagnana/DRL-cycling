@@ -18,7 +18,12 @@ def agent_portrayal(agent):
 
 list_rewards = []
 
-visu = True
+testing = True
+
+cuda=True
+print("GPU:", cuda)
+if(cuda):
+    print(torch.cuda.get_device_name(0))
 
 width=4
 height=7
@@ -28,15 +33,15 @@ for i in range(width):
         waiting_dict[(i, j)] = 3 #randint(hyperParams.RANGE_STEP_TO_WAIT[0], hyperParams.RANGE_STEP_TO_WAIT[1])
 
 
-decision_maker = DiscreteAgent(DiscreteActionSpace(4), DiscreteObservationSpace(8))
-params = {"N":2, "width":width, "height":height, "waiting_dict":waiting_dict, "decision_maker": decision_maker, "list_rewards": list_rewards}
+decision_maker = DiscreteAgent(DiscreteActionSpace(5), DiscreteObservationSpace(8), cuda=cuda)
+params = {"N":2, "width":width, "height":height, "waiting_dict":waiting_dict, "decision_maker": decision_maker, "list_rewards": list_rewards, "testing":testing}
 
-if(visu):
+if(testing):
     with open('./trained_networks/mesa.hp', 'rb') as infile:
         hyperParams = pickle.load(infile)
     with open('./trained_networks/waiting.dict', 'rb') as infile:
         waiting_dict = pickle.load(infile)
-    params["decision_maker"] = DiscreteAgent(DiscreteActionSpace(4), DiscreteObservationSpace(8), hyperParams=hyperParams, actor_to_load='./trained_networks/mesa.n')
+    params["decision_maker"] = DiscreteAgent(DiscreteActionSpace(5), DiscreteObservationSpace(8), cuda=cuda, hyperParams=hyperParams, actor_to_load='./trained_networks/mesa.n')
     params["waiting_dict"] = waiting_dict
     grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
     server = ModularServer(MesaModel,
