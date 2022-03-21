@@ -40,7 +40,7 @@ class DiscreteAgent(object):
 
 
         if(actor_to_load != None): #if it's a test, use the loaded NN
-            self.actor.load_state_dict(torch.load(actor_to_load))
+            self.actor.load_state_dict(torch.load(actor_to_load, map_location=self.device))
             self.actor.eval()
         
         self.actor_target = copy.deepcopy(self.actor) #a target network is used to make the convergence possible (see papers on DRL)

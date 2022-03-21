@@ -21,6 +21,8 @@ list_rewards = []
 testing = True
 
 cuda=True
+
+cuda = cuda and torch.cuda.is_available()
 print("GPU:", cuda)
 if(cuda):
     print(torch.cuda.get_device_name(0))
@@ -34,15 +36,17 @@ for i in range(width):
 
 
 decision_maker = DiscreteAgent(DiscreteActionSpace(5), DiscreteObservationSpace(8), cuda=cuda)
-params = {"N":2, "width":width, "height":height, "waiting_dict":waiting_dict, "decision_maker": decision_maker, "list_rewards": list_rewards, "testing":testing}
+params = {"N":6, "width":width, "height":height, "waiting_dict":waiting_dict, "decision_maker": decision_maker, "list_rewards": list_rewards, "testing":testing}
 
 if(testing):
     with open('./trained_networks/mesa.hp', 'rb') as infile:
         hyperParams = pickle.load(infile)
+    print(hyperParams.MIN_EPSILON)
     with open('./trained_networks/waiting.dict', 'rb') as infile:
         waiting_dict = pickle.load(infile)
     params["decision_maker"] = DiscreteAgent(DiscreteActionSpace(5), DiscreteObservationSpace(8), cuda=cuda, hyperParams=hyperParams, actor_to_load='./trained_networks/mesa.n')
     params["waiting_dict"] = waiting_dict
+    params["N"]=2
     grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
     server = ModularServer(MesaModel,
                         [grid],

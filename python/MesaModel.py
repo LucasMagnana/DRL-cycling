@@ -105,11 +105,11 @@ class MesaAgent(Agent):
 
 
     def construct_and_save_observation(self):
-        observation = [self.pos[0]+1, self.pos[1]+1, self.next_position[0]+1, self.next_position[1]+1]
+        observation = [self.pos[0]+1, self.pos[1]+1, self.destination[0]+1, self.destination[1]+1]
 
         for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
             if(n != self):
-                neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.next_position[0]+1, n.next_position[1]+1]
+                neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.destination[0]+1, n.destination[1]+1]
                 if(len(observation)<self.model.decision_maker.observation_space.shape[0]):
                     observation += neighbor_observation
 
@@ -124,9 +124,9 @@ class MesaAgent(Agent):
         if(self.pos == self.destination):
             done = True
         if(self.estimated_ending_step < self.n_step):
-            r = -3
+            r = -1
         elif(self.in_group):
-            r = 2
+            r = 1
         elif(not self.in_group):
             r = 0
 
