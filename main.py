@@ -1,96 +1,78 @@
-import argparse
-import sys
-import gym 
-import pickle
-
+from mesa.visualization.modules import CanvasGrid
+from mesa.visualization.ModularVisualization import ModularServer
+from mesa.batchrunner import FixedBatchRunner
 import matplotlib.pyplot as plt
+import pickle
+from random import *
 
-import datetime as dt
+from python.MesaModel import *
+import python.hyperParams
 
-from python.ContinuousAgent import *
-from python.DiscreteAgent import *
-from python.hyperParams import hyperParams, module
+def agent_portrayal(agent):
+    portrayal = {"Shape": "circle",
+                 "Filled": "true",
+                 "Layer": 0,
+                 "Color": "red",
+                 "r": 0.5}
+    return portrayal
 
-from python.DiscreteEnvironment import *
-from python.ContinuousEnvironment import *
+list_rewards = []
 
-from test import test
+testing = True
+
+cuda=True
+
+cuda = cuda and torch.cuda.is_available()
+print("GPU:", cuda)
+if(cuda):
+    print(torch.cuda.get_device_name(0))
+
+width=4
+height=7
+waiting_dict = {}
+for i in range(width):
+    for j in range(height):
+        waiting_dict[(i, j)] = 3 #randint(hyperParams.RANGE_STEP_TO_WAIT[0], hyperParams.RANGE_STEP_TO_WAIT[1])
 
 
+decision_maker = DiscreteAgent(DiscreteActionSpace(5), DiscreteObservationSpace(8), cuda=cuda)
+params = {"N":6, "width":width, "height":height, "waiting_dict":waiting_dict, "decision_maker": decision_maker, "list_rewards": list_rewards, "testing":testing}
 
+if(testing):
+    with open('./trained_networks/mesa.hp', 'rb') as infile:
+        hyperParams = pickle.load(infile)
+    print(hyperParams.MIN_EPSILON)
+    with open('./trained_networks/waiting.dict', 'rb') as infile:
+        waiting_dict = pickle.load(infile)
+    params["decision_maker"] = DiscreteAgent(DiscreteActionSpace(5), DiscreteObservationSpace(8), cuda=cuda, hyperParams=hyperParams, actor_to_load='./trained_networks/mesa.n')
+    params["waiting_dict"] = waiting_dict
+    params["N"]=2
+    grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
+    server = ModularServer(MesaModel,
+                        [grid],
+                        "Mesa Model",
+                        params)
+    server.port = 8521 # The default
+    server.launch()
 
+else:
+    batch_runner = FixedBatchRunner(MesaModel, fixed_parameters=params,
+    iterations=hyperParams.EPISODE_COUNT, max_steps=hyperParams.MAX_STEPS)
+    batch_runner.run_all()
 
-if __name__ == '__main__':
-
-    cuda = torch.cuda.is_available()
-
-    env = None
-    
-    if("monresovelo" in module):
-        env = DiscreteEnvironment(module) #custom env
-    else:
-        env = gym.make(module) #gym env
-
-    if("Continuous" in module): #agents are not the same wether the action space is continuous or discrete     
-        agent = ContinuousAgent(env.action_space, env.observation_space, cuda)
-    else:
-        agent = DiscreteAgent(env.action_space, env.observation_space, cuda=cuda)
-
-    tab_sum_rewards = []
-    tab_noise = []
-    
-    print("start:", dt.datetime.now())
-
-    for e in range(1, hyperParams.EPISODE_COUNT):
-
-        if(e%(hyperParams.EPISODE_COUNT//4) == 0):
-            print("1/4:", dt.datetime.now())
-
-        ob = env.reset()
-        sum_rewards=0
-        steps=0
-        while True:
-            ob_prec = ob   
-            action = agent.act(ob)
-            ob, reward, done, _ = env.step(action)
-            agent.memorize(ob_prec, action, ob, reward, done)
-            sum_rewards += reward
-            steps+=1
-            if(len(agent.buffer)>hyperParams.LEARNING_START):
-                agent.learn(steps)
-            if done or steps > hyperParams.MAX_STEPS:
-                tab_sum_rewards.append(sum_rewards)
-                if(agent.epsilon > 0):
-                    tab_noise.append(agent.epsilon)               
-                break
-          
-    print("end:", dt.datetime.now())
-
-    
-    #plot the sums of rewards and the noise (noise shouldnt be in the same graph but for now it's good)
-    plt.figure(figsize=(25, 12), dpi=80)
-    plt.plot(tab_sum_rewards, linewidth=1)
-    plt.plot(tab_noise)
-    plt.ylabel('Reward Accumulée')       
-    plt.savefig("./images/"+module+".png")
-
-    avg_last_sum_rewards = sum(tab_sum_rewards[-100:])/100
-
-    print("Average last 100 sums of reward:", avg_last_sum_rewards)
-    
-    #save the neural networks of the agent
+    #save the neural networks of the decision maker
     print("Saving...")
-    torch.save(agent.actor_target.state_dict(), './trained_networks/'+module+'_target.n')
-    torch.save(agent.actor.state_dict(), './trained_networks/'+module+'.n')
+    torch.save(decision_maker.actor_target.state_dict(), './trained_networks/mesa_target.n')
+    torch.save(decision_maker.actor.state_dict(), './trained_networks/mesa.n')
 
     #save the hyper parameters (for the tests and just in case)
-    with open('./trained_networks/'+module+'.hp', 'wb') as outfile:
+    with open('./trained_networks/mesa.hp', 'wb') as outfile:
         pickle.dump(hyperParams, outfile)
 
+    with open('./trained_networks/waiting.dict', 'wb') as outfile:
+        pickle.dump(waiting_dict, outfile)
 
-    if("monresovelo" in module): #tests only work for the custom env (so will the project in the end)
-        test()
-
-
-    # Close the env (only useful for the gym envs for now)
-    env.close()
+    plt.figure(figsize=(25, 12), dpi=80)
+    plt.plot(list_rewards, linewidth=1)
+    plt.ylabel('Reward Accumulée')       
+    plt.savefig("./images/mesa.png")

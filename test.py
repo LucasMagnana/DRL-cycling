@@ -7,65 +7,46 @@ import matplotlib.pyplot as plt
 
 import datetime as dt
 
-from python.ContinuousAgent import *
 from python.DiscreteAgent import *
 from python.hyperParams import hyperParams, module
-import python.metric as metric
-
-from python.DiscreteEnvironment import *
-from python.ContinuousEnvironment import *
 
 
 
 
 
-def test(module="monresovelo"):
+
+def test(module="CartPole-v1"):
 
     cuda = torch.cuda.is_available()
     
-    env = DiscreteEnvironment(module)
+    env = gym.make(module)
 
     with open('./trained_networks/'+module+'.hp', 'rb') as infile:
         hyperParams = pickle.load(infile)
     
     agent = DiscreteAgent(env.action_space, env.observation_space, cuda, hyperParams=hyperParams, actor_to_load='./trained_networks/'+module+'.n')
 
-    sum_overlap = 0
-    sum_reward = 0
+    tab_sum_rewards = []
 
-    for path in env.list_paths:
-        reward = 0
-        done = False
-        ob = env.reset(path)
-        reward_accumulee=0
+    for e in range(1):
+        ob = env.reset()
+        sum_rewards=0
         steps=0
         while True:
-            ob_prec = ob  
+            env.render()
+            ob_prec = ob   
             action = agent.act(ob)
             ob, reward, done, _ = env.step(action)
-            agent.memorize(ob_prec, action, ob, reward, done)
-            reward_accumulee += reward
+            sum_rewards += reward
             steps+=1
             if done or steps > hyperParams.MAX_STEPS:
-                original_path = []
-                for e in path:
-                    original_path.append(e[0])
-                original_path.append(path[-1][-1])
-                
-                generated_path = []
-                for n in env.generated_path:
-                    generated_path.append(n)
-
-                overlap = metric.get_overlap(generated_path, original_path, env.G)
-
-                #print(generated_path, original_path, overlap)
-
-                sum_overlap += overlap
-                sum_reward += reward_accumulee
+                tab_sum_rewards.append(sum_rewards)            
                 break
 
-    print("Average reward : ", sum_reward/len(env.list_paths))   
-    print("Average overlap : ", sum_overlap/len(env.list_paths))
+    env.close()
+
+
+    print("Sum reward : ", sum_rewards) 
 
 
 if __name__ == '__main__':

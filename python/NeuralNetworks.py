@@ -66,21 +66,3 @@ class ActorRNN(nn.Module):
         out = self.int(combined)
         out = self.out(out)
         return out 
-
-
-
-
-class Critic(nn.Module):
-
-    def __init__(self, size_ob, size_action):
-        super(Critic, self).__init__()
-        hyperParams=HP.hyperParams
-        self.inp = nn.Linear(size_ob+size_action, hyperParams.CRIT_IN)
-        self.int = nn.Linear(hyperParams.CRIT_IN, hyperParams.CRIT_INTER)
-        self.out = nn.Linear(hyperParams.CRIT_INTER, 1)
-
-    def forward(self, ob, action):
-        out = nn.functional.relu(self.inp(torch.cat((ob, action), dim=1)))
-        out = nn.functional.relu(self.int(out))
-        return self.out(out)
-
