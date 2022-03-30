@@ -1,4 +1,4 @@
-class DisHyperParams :
+class DDQNHyperParams :
     def __init__(self):
         self.BUFFER_SIZE = 100000  #max size of the agent's replays buffer
         self.ALPHA = 0.05 #
@@ -26,4 +26,25 @@ class DisHyperParams :
         self.MIN_NUM_AGENT_IN_GROUP = 2
 
 
-hyperParams = DisHyperParams()
+class PPOHyperParams :
+    def __init__(self):
+        self.LR = 0.01
+        self.BATCH_SIZE = 10
+        self.GAMMA = 0.99
+        self.LAMBDA = 0.99
+        self.EPSILON = 0.2
+
+        self.EPISODE_COUNT = 300
+        self.NUM_AGENTS = 5
+        self.NUM_EP_ENV = 1
+        self.K = 3
+
+        self.HIDDEN_SIZE = 32
+        self.MAX_STEPS = 1000
+
+        self.RANGE_STEP_TO_WAIT = [3, 9]
+        self.MIN_NUM_AGENT_IN_GROUP = 2
+
+
+module = "CartPole-v1" #"LunarLanderContinuous-v2"
+

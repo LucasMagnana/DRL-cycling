@@ -8,16 +8,14 @@ import copy
 import numpy as np
 import torch
 
-from python.hyperParams import hyperParams as hp
-from python.NeuralNetworks import Actor, ActorRNN
+from python.NeuralNetworks import Actor
 
-class DiscreteAgent(object):
-    def __init__(self, action_space, observation_space, cuda=False, hyperParams=None, actor_to_load=None, RNN=False):
+class DDQNAgent(object):
+    def __init__(self, action_space, observation_space, hyperParams, cuda=False, actor_to_load=None):
 
-        if(hyperParams == None): #use the good hyper parameters (loaded if it's a test, written in the code if it's a training)
-            self.hyperParams = hp
-        else:
-            self.hyperParams = hyperParams
+        self.hyperParams = hyperParams
+        
+        if(actor_to_load != None): #use the good hyper parameters (loaded if it's a test, written in the code if it's a training)
             self.hyperParams.EPSILON = 0
 
         self.action_space = action_space   
@@ -31,10 +29,7 @@ class DiscreteAgent(object):
 
         self.device = torch.device("cuda" if cuda else "cpu")
 
-        if(RNN):
-            self.actor = ActorRNN(observation_space.shape[0], action_space.n).to(self.device) #for custom env
-        else:
-            self.actor = Actor(observation_space.shape[0], action_space.n).to(self.device) #for cartpole
+        self.actor = Actor(observation_space.shape[0], action_space.n, self.hyperParams).to(self.device) #for cartpole
 
         self.batch_size = self.hyperParams.BATCH_SIZE
 
@@ -54,10 +49,7 @@ class DiscreteAgent(object):
 
     def act(self, observation):
         #return self.action_space.sample()
-        if(isinstance(self.actor, ActorRNN)):
-            observation=[torch.tensor(observation[0], device=self.device), torch.tensor(observation[1], device=self.device)]
-        else:
-            observation = torch.tensor(observation, device=self.device)
+        observation = torch.tensor(observation, device=self.device)
         tens_qvalue = self.actor(observation) #compute the qvalues for the observation
         tens_qvalue = tens_qvalue.squeeze()
         rand = random()
@@ -78,6 +70,13 @@ class DiscreteAgent(object):
         self.buffer.append([ob_prec, action, ob, reward, not(done)])
 
     def learn(self, n_iter=None):
+
+        #previous noise decaying method, works well with cartpole
+        '''if(self.epsilon > self.hyperParams.MIN_EPSILON):
+            self.epsilon *= self.hyperParams.EPSILON_DECAY
+        else:
+            self.epsilon = 0'''
+
         
         #actual noise decaying method, works well with the custom env
         self.epsilon -= self.hyperParams.EPSILON_DECAY
@@ -105,7 +104,8 @@ class DiscreteAgent(object):
 
         tens_qvalue = torch.index_select(tens_qvalue, 1, tens_action).diag() #select the qvalues corresponding to the chosen actions
 
-        '''# Simple DQN
+        '''
+        # Simple DQN
         tens_next_qvalue = self.actor_target(tens_state_next) #compute all the qvalues for all the "next states"
         (tens_next_qvalue, _) = torch.max(tens_next_qvalue, 1) #select the max qvalues for all the next states'''
         

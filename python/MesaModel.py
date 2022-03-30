@@ -3,8 +3,9 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 
-from python.hyperParams import hyperParams
-from python.DiscreteAgent import *
+from random import randint
+import torch 
+import numpy as np
 
 
 class DiscreteActionSpace: #mandatory to use an agent designed for gym environments
@@ -20,8 +21,10 @@ class DiscreteObservationSpace: #mandatory to use an agent designed for gym envi
 class MesaAgent(Agent):
     """An agent with fixed initial wealth."""
 
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, hyperParams):
         super().__init__(unique_id, model)
+
+        self.hyperParams = hyperParams
 
         self.shortest_path = None
         self.next_position = None
@@ -35,8 +38,13 @@ class MesaAgent(Agent):
 
         self.n_step = 0
 
-        self.reward = 0
+        self.sum_reward = 0
         self.ob = None
+        self.ob_prec = None
+        self.action = None
+        self.value = None
+
+        self.id = unique_id
 
 
 
@@ -68,23 +76,23 @@ class MesaAgent(Agent):
                 self.estimated_ending_step += self.model.waiting_dict[p]
 
 
-    def change_next_position(self, action):
-        if(action==0):
+    def change_next_position_with_action(self):
+        if(self.action==0):
             if(self.pos[0] == self.model.grid.width-1):
                 self.next_position = (self.pos[0]-1, self.pos[1])
             else:
                 self.next_position = (self.pos[0]+1, self.pos[1])
-        elif(action==1):
+        elif(self.action==1):
             if(self.pos[0] == 0):
                 self.next_position = (self.pos[0]+1, self.pos[1])
             else:
                 self.next_position = (self.pos[0]-1, self.pos[1])
-        elif(action==2):
+        elif(self.action==2):
             if(self.pos[1] == self.model.grid.height-1):
                 self.next_position = (self.pos[0], self.pos[1]-1)
             else:
                 self.next_position = (self.pos[0], self.pos[1]+1)
-        elif(action==3):
+        elif(self.action==3):
             if(self.pos[1] == 0):
                 self.next_position = (self.pos[0], self.pos[1]+1)
             else:
@@ -99,7 +107,7 @@ class MesaAgent(Agent):
         padded_path_taken = copy.deepcopy(self.path_taken)
         for i in range(len(padded_path_taken)):
             padded_path_taken[i] = (padded_path_taken[i][0]+1, padded_path_taken[i][1]+1)
-        for _ in range(hyperParams.SEQ_SIZE-len(self.path_taken)):
+        for _ in range(self.hyperParams.SEQ_SIZE-len(self.path_taken)):
             padded_path_taken.append((0,0))
         return padded_path_taken
 
@@ -116,6 +124,7 @@ class MesaAgent(Agent):
         while(len(observation)<self.model.decision_maker.observation_space.shape[0]):
             observation.append(0)
         #print(observation)
+        self.ob_prec = self.ob
         self.ob = observation #[self.get_padded_path_taken(), observation]
 
 
@@ -130,7 +139,7 @@ class MesaAgent(Agent):
         elif(not self.in_group):
             r = 0
 
-        self.reward += r
+        self.sum_reward += r
         return done, r
 
 
@@ -148,10 +157,10 @@ class MesaAgent(Agent):
         if(self.n_step >= self.next_movement_step):
             if(self.ob == None):
                 self.construct_and_save_observation()
-            self.action = self.model.decision_maker.act(self.ob)
-            self.ob_prec = self.ob
-            self.ob = None
-            self.change_next_position(self.action)
+            action_probs = self.model.decision_maker.actor(torch.tensor(self.ob)).detach().numpy()
+            self.action = np.random.choice(np.arange(self.model.decision_maker.action_space.n), p=action_probs)
+            self.value = self.model.decision_maker.critic(torch.tensor(self.ob)).detach().numpy()
+            self.change_next_position_with_action()
             self.model.grid.move_agent(self, self.next_position)
             self.path_taken.append(self.next_position)
             self.moved = True
@@ -160,6 +169,7 @@ class MesaAgent(Agent):
                 self.next_position = self.pos
                 #print(self.n_step, self.estimated_ending_step)
             else:
+                self.compute_shortest_path()    
                 self.next_position = self.shortest_path[0]
                 self.shortest_path.pop(0)
                 self.next_movement_step = self.n_step + self.model.waiting_dict[(self.pos)]
@@ -178,17 +188,26 @@ class MesaAgent(Agent):
 class MesaModel(Model):
     """A model with some number of agents."""
 
-    def __init__(self, N, width, height, waiting_dict, decision_maker, list_rewards, testing):
+    def __init__(self, N, width, height, waiting_dict, decision_maker, hyperParams, testing):
         super().__init__()
+
         self.num_agents = N
-        self.schedule = RandomActivation(self)
+        self.waiting_dict = waiting_dict
+        self.decision_maker = decision_maker
         self.testing = testing
+        self.hyperParams = hyperParams
 
         self.grid = MultiGrid(width, height, True)
         
         self.list_agents = []
+
+        self.reset()
+        
+
+    def reset(self):
+        self.schedule = RandomActivation(self)
         for i in range(self.num_agents):
-            a = MesaAgent(i, self)
+            a = MesaAgent(i, self, self.hyperParams)
             self.schedule.add(a)
 
             if(self.testing):            
@@ -210,63 +229,26 @@ class MesaModel(Model):
 
             self.list_agents.append(a)
 
-        self.decision_maker = decision_maker 
-        self.need_learning = False
-
         self.n_iter = 0
-        self.list_rewards = list_rewards
         self.mean_reward = 0
-        self.N = N
-        self.waiting_dict = waiting_dict
+        self.running = True
+
+
 
 
     def step(self):
         """Advance the model by one step."""
-        self.n_iter += 1
         self.schedule.step()
         self.check_for_groups()
-
-        next_list_agents = []
-
-        need_learning = False
-
         for a in self.list_agents:
-            if(a.moved):
-                need_learning = True
-                done, reward = a.calculate_reward()
-                a.construct_and_save_observation()
-                self.decision_maker.memorize(a.ob_prec, a.action, a.ob, reward, done)
-                if(done):
-                    self.mean_reward += (a.reward/self.N)
-                if(a.pos == a.destination):
-                    self.grid.remove_agent(a)
-                    self.schedule.remove(a)
-                else:
-                    next_list_agents.append(a)
-                a.moved = False
-                a.ob_prec = None
-                a.action = None
-            else:
-                next_list_agents.append(a)
-
-        self.list_agents = next_list_agents
-
-        if(need_learning and len(self.decision_maker.buffer) > hyperParams.LEARNING_START):
-            self.decision_maker.learn()
-
-        if(len(self.list_agents) == 0 or self.n_iter >= hyperParams.MAX_STEPS):
-            for a in self.list_agents:
-                self.mean_reward += (a.reward/self.N)
-            self.running = False
-            self.list_rewards.append(self.mean_reward)
-            #print("mean :", self.mean_reward)
+            a.construct_and_save_observation()
 
 
 
     def check_for_groups(self):
         for cell in self.grid.coord_iter():
             list_agents = cell[0]
-            if(len(list_agents) >= hyperParams.MIN_NUM_AGENT_IN_GROUP):
+            if(len(list_agents) >= self.hyperParams.MIN_NUM_AGENT_IN_GROUP):
                 for a in list_agents:
                     a.in_group = True
             else:
