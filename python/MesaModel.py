@@ -115,14 +115,14 @@ class MesaAgent(Agent):
     def construct_and_save_observation(self):
         observation = [self.pos[0]+1, self.pos[1]+1, self.destination[0]+1, self.destination[1]+1]
 
-        for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
+        '''for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
             if(n != self):
                 neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.destination[0]+1, n.destination[1]+1]
                 if(len(observation)<self.model.decision_maker.observation_space.shape[0]):
                     observation += neighbor_observation
 
         while(len(observation)<self.model.decision_maker.observation_space.shape[0]):
-            observation.append(0)
+            observation.append(0)'''
         #print(observation)
         self.ob_prec = self.ob
         self.ob = observation #[self.get_padded_path_taken(), observation]
@@ -157,7 +157,7 @@ class MesaAgent(Agent):
         if(self.n_step >= self.next_movement_step):
             if(self.ob == None):
                 self.construct_and_save_observation()
-            action_probs = self.model.decision_maker.actor(torch.tensor(self.ob)).detach().numpy()
+            action_probs = self.model.decision_maker.old_actor(torch.tensor(self.ob)).detach().numpy()
             self.action = np.random.choice(np.arange(self.model.decision_maker.action_space.n), p=action_probs)
             self.value = self.model.decision_maker.critic(torch.tensor(self.ob)).detach().numpy()
             self.change_next_position_with_action()
@@ -219,13 +219,21 @@ class MesaModel(Model):
                     a.destination = ((self.grid.width-1)//2+1, self.grid.height-1)
 
             else:
+                if(i == 0):
+                    self.grid.place_agent(a, (0, 1))
+                    a.destination = ((self.grid.width-1)//2, self.grid.height-1)
+                else:
+                    self.grid.place_agent(a, (self.grid.width-1, 0))
+                    a.destination = ((self.grid.width-1)//2+1, self.grid.height-1)
+                
+                '''
                 pos=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
                 self.grid.place_agent(a, pos)
                 dest=pos
                 while(dest==pos):
                     dest=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
                 
-                a.destination=dest
+                a.destination=dest'''
 
             self.list_agents.append(a)
 
@@ -242,6 +250,8 @@ class MesaModel(Model):
         self.check_for_groups()
         for a in self.list_agents:
             a.construct_and_save_observation()
+
+        
 
 
 

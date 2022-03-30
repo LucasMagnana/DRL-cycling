@@ -40,7 +40,7 @@ class PPOHyperParams :
         self.K = 3
 
         self.HIDDEN_SIZE = 32
-        self.MAX_STEPS = 1000
+        self.MAX_STEPS = 100
 
         self.RANGE_STEP_TO_WAIT = [3, 9]
         self.MIN_NUM_AGENT_IN_GROUP = 2
