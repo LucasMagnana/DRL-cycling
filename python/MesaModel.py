@@ -160,8 +160,6 @@ class MesaAgent(Agent):
                 self.construct_and_save_observation()
             action_probs = self.model.decision_maker.old_actor(torch.tensor(self.ob)).detach().numpy()
             self.action = np.random.choice(np.arange(self.model.decision_maker.action_space.n), p=action_probs)
-            if(self.ob == [4, 1, 3, 7]):
-                print(self.ob, self.action, action_probs)
             self.value = self.model.decision_maker.critic(torch.tensor(self.ob)).detach().numpy()
             self.change_next_position_with_action()
             self.model.grid.move_agent(self, self.next_position)
@@ -221,22 +219,14 @@ class MesaModel(Model):
                     self.grid.place_agent(a, (self.grid.width-1, 0))
                     a.destination = ((self.grid.width-1)//2+1, self.grid.height-1)
 
-            else:
-                if(i == 0):
-                    self.grid.place_agent(a, (0, 1))
-                    a.destination = ((self.grid.width-1)//2, self.grid.height-1)
-                else:
-                    self.grid.place_agent(a, (self.grid.width-1, 0))
-                    a.destination = ((self.grid.width-1)//2+1, self.grid.height-1)
-                
-                '''
+            else:              
                 pos=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
                 self.grid.place_agent(a, pos)
                 dest=pos
                 while(dest==pos):
                     dest=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
                 
-                a.destination=dest'''
+                a.destination=dest
 
             self.list_agents.append(a)
 

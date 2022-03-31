@@ -68,10 +68,9 @@ class PPO_Actor(nn.Module):
         self.sm = nn.Softmax(dim=-1)
     
     def forward(self, ob):
-        ob = ob.float()
-        act_out = nn.functional.relu(self.act_inp(ob))
+        ob_f = ob.float()
+        act_out = nn.functional.relu(self.act_inp(ob_f))
         act_out = self.sm(self.act_out(act_out))
-
         return act_out
 
 

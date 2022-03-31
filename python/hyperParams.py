@@ -35,8 +35,8 @@ class PPOHyperParams :
         self.EPSILON = 0.2
 
         self.EPISODE_COUNT = 300
-        self.NUM_AGENTS = 5
-        self.NUM_EP_ENV = 1
+        self.NUM_AGENTS = 10
+        self.NUM_EP_ENV = 5
         self.K = 3
 
         self.HIDDEN_SIZE = 32

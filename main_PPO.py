@@ -38,7 +38,7 @@ if __name__ == '__main__':
         for j in range(height):
             waiting_dict[(i, j)] = 3 #randint(hyperParams.RANGE_STEP_TO_WAIT[0], hyperParams.RANGE_STEP_TO_WAIT[1])
 
-    ppo_agent = PPOAgent(DiscreteActionSpace(5), DiscreteObservationSpace(4), hyperParams, './trained_networks/mesa_ac_PPO.n', './trained_networks/mesa_cr_PPO.n')
+    ppo_agent = PPOAgent(DiscreteActionSpace(5), DiscreteObservationSpace(4), hyperParams)
     env = MesaModel(num_agents, width, height, waiting_dict, ppo_agent, hyperParams, testing)
 
     if(not testing):
@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
         actor_to_load='./trained_networks/mesa_ac_PPO.n'
         critic_to_load='./trained_networks/mesa_cr_PPO.n'
-        decision_maker = PPOAgent(DiscreteActionSpace(5), DiscreteObservationSpace(4), hyperParams, actor_to_load, critic_to_load)
+        ppo_agent = PPOAgent(DiscreteActionSpace(5), DiscreteObservationSpace(4), hyperParams, actor_to_load, critic_to_load)
         params = {"N":2, "width": width, "height": height, "waiting_dict": waiting_dict, "decision_maker": ppo_agent, "hyperParams": hyperParams, "testing": testing}
         grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
         server = ModularServer(MesaModel,
