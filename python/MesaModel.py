@@ -6,6 +6,7 @@ from mesa.datacollection import DataCollector
 from random import randint
 import torch 
 import numpy as np
+import copy
 
 
 class DiscreteActionSpace: #mandatory to use an agent designed for gym environments
@@ -159,6 +160,8 @@ class MesaAgent(Agent):
                 self.construct_and_save_observation()
             action_probs = self.model.decision_maker.old_actor(torch.tensor(self.ob)).detach().numpy()
             self.action = np.random.choice(np.arange(self.model.decision_maker.action_space.n), p=action_probs)
+            if(self.ob == [4, 1, 3, 7]):
+                print(self.ob, self.action, action_probs)
             self.value = self.model.decision_maker.critic(torch.tensor(self.ob)).detach().numpy()
             self.change_next_position_with_action()
             self.model.grid.move_agent(self, self.next_position)
@@ -237,6 +240,19 @@ class MesaModel(Model):
 
             self.list_agents.append(a)
 
+        self.states = {}
+        self.rewards = {}
+        self.actions = {}
+        self.values = {}
+        self.list_done = {}
+
+        for a in self.list_agents:
+            self.states[a.id] = []
+            self.rewards[a.id] = []
+            self.actions[a.id] = []
+            self.values[a.id] = []
+            self.list_done[a.id] = []
+
         self.n_iter = 0
         self.mean_reward = 0
         self.running = True
@@ -246,10 +262,39 @@ class MesaModel(Model):
 
     def step(self):
         """Advance the model by one step."""
+        self.n_iter+=1
+
+        next_list_agents = []
         self.schedule.step()
         self.check_for_groups()
         for a in self.list_agents:
             a.construct_and_save_observation()
+
+        for a in self.list_agents:
+            if(a.moved):
+                done, reward = a.calculate_reward()
+                self.states[a.id].append(a.ob_prec)
+                self.values[a.id].extend(a.value)
+                self.actions[a.id].append(a.action)
+                self.rewards[a.id].append(reward)
+                self.list_done[a.id].append(done) 
+                if(done):
+                    self.mean_reward += (a.sum_reward/self.num_agents)
+                    self.grid.remove_agent(a)
+                    self.schedule.remove(a)
+                else:
+                    next_list_agents.append(a)
+                a.moved = False
+            else:
+                next_list_agents.append(a)
+
+        self.list_agents = next_list_agents
+
+
+        if(len(self.list_agents) == 0 or self.n_iter == self.hyperParams.MAX_STEPS):
+            for a in self.list_agents:
+                self.mean_reward += (a.sum_reward/self.num_agents)
+            self.running = False
 
         
 

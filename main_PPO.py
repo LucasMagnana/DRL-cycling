@@ -38,8 +38,7 @@ if __name__ == '__main__':
         for j in range(height):
             waiting_dict[(i, j)] = 3 #randint(hyperParams.RANGE_STEP_TO_WAIT[0], hyperParams.RANGE_STEP_TO_WAIT[1])
 
-
-    ppo_agent = PPOAgent(DiscreteActionSpace(5), DiscreteObservationSpace(4), hyperParams)
+    ppo_agent = PPOAgent(DiscreteActionSpace(5), DiscreteObservationSpace(4), hyperParams, './trained_networks/mesa_ac_PPO.n', './trained_networks/mesa_cr_PPO.n')
     env = MesaModel(num_agents, width, height, waiting_dict, ppo_agent, hyperParams, testing)
 
     if(not testing):
@@ -65,6 +64,7 @@ if __name__ == '__main__':
         plt.savefig("./images/mesa_PPO.png")
         
         #save the neural networks of the policy
+        #print(ppo_agent.old_actor.state_dict())
         torch.save(ppo_agent.old_actor.state_dict(), './trained_networks/mesa_ac_PPO.n')
         torch.save(ppo_agent.critic.state_dict(), './trained_networks/mesa_cr_PPO.n')
 

@@ -43,7 +43,6 @@ def gae(rewards, values, episode_ends, gamma, lam):
 class PPOAgent():
 
     def __init__(self, ac_space, ob_space, hyperParams, actor_to_load=None, critic_to_load=None):
-
         self.action_space = ac_space
         self.observation_space = ob_space
 
@@ -54,8 +53,15 @@ class PPOAgent():
         if(actor_to_load != None and critic_to_load != None):
             self.old_actor.load_state_dict(torch.load(actor_to_load))
             self.old_actor.eval()
+            #print(self.old_actor.state_dict())
             self.critic.load_state_dict(torch.load(critic_to_load))
             self.critic.eval()
+
+            self.actor = copy.deepcopy(self.old_actor)   
+            # Define optimizer
+            self.optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=self.hyperParams.LR)
+            self.optimizer_critic = torch.optim.Adam(self.critic.parameters(), lr=self.hyperParams.LR)
+            self.mse = torch.nn.MSELoss()
         else:
             self.actor = copy.deepcopy(self.old_actor)   
             # Define optimizer
@@ -130,61 +136,20 @@ class PPOAgent():
     def act(self, env, render=False):
 
         for y in range(self.hyperParams.NUM_EP_ENV):
-            states = {}
-            rewards = {}
-            actions = {}
-            values = {}
-            list_done = {}
-            for a in env.list_agents:
-                states[a.id] = []
-                rewards[a.id] = []
-                actions[a.id] = []
-                values[a.id] = []
-                list_done[a.id] = []
+            while(env.running):
+                env.step()       
 
-            step=1
-            while(env.running and step<=self.hyperParams.MAX_STEPS):
-                next_list_agents = []
-                env.step()
-                for a in env.list_agents:
-                    if(a.moved):
-                        done, reward = a.calculate_reward()
-                        states[a.id].append(a.ob_prec)
-                        values[a.id].extend(a.value)
-                        actions[a.id].append(a.action)
-                        rewards[a.id].append(reward)
-                        list_done[a.id].append(done) 
-                        if(done):
-                            env.mean_reward += (a.sum_reward/env.num_agents)
-                            env.grid.remove_agent(a)
-                            env.schedule.remove(a)
-                        else:
-                            next_list_agents.append(a)
-                        a.moved = False
-                    else:
-                        next_list_agents.append(a)
-
-                env.list_agents = next_list_agents
-
-
-                if(len(env.list_agents) == 0 or step == self.hyperParams.MAX_STEPS):
-                    for a in env.list_agents:
-                        env.mean_reward += (a.sum_reward/env.num_agents)
-                    env.running = False
-
-                step+=1             
-
-            for key in states:
-                if(not(len(states[key]) == len(rewards[key]) == len(actions[key]) == len(values[key]) == len(list_done[key]))):
+            for key in env.states:
+                if(not(len(env.states[key]) == len(env.rewards[key]) == len(env.actions[key]) == len(env.values[key]) == len(env.list_done[key]))):
                     print("GROSSE BITE !!!!!!")
-                self.batch_rewards.extend(discount_rewards(rewards[key], self.hyperParams.GAMMA))
-                gaes = gae(np.expand_dims(np.array(rewards[key]), 0), np.expand_dims(np.array(values[key]), 0), np.expand_dims(np.array([not elem for elem in list_done[key]]), 0), self.hyperParams.GAMMA, self.hyperParams.LAMBDA)
+                self.batch_rewards.extend(discount_rewards(env.rewards[key], self.hyperParams.GAMMA))
+                gaes = gae(np.expand_dims(np.array(env.rewards[key]), 0), np.expand_dims(np.array(env.values[key]), 0), np.expand_dims(np.array([not elem for elem in env.list_done[key]]), 0), self.hyperParams.GAMMA, self.hyperParams.LAMBDA)
                 self.batch_advantages.extend(gaes[0])
-                self.batch_states.extend(states[key])
-                self.batch_values.extend(values[key])
-                self.batch_actions.extend(actions[key])
+                self.batch_states.extend(env.states[key])
+                self.batch_values.extend(env.values[key])
+                self.batch_actions.extend(env.actions[key])
                
-                self.batch_done.extend(list_done[key])
+                self.batch_done.extend(env.list_done[key])
             
             self.total_rewards.append(env.mean_reward)
             ar = np.mean(self.total_rewards[-100:])
