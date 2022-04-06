@@ -60,10 +60,12 @@ class REINFORCEAgent():
         logprob = torch.log(self.actor(state_tensor))
         selected_logprobs = reward_tensor * torch.index_select(logprob, 1, action_tensor).diag()
         loss = -selected_logprobs.mean()
-        #print(loss.item())
+        '''print()
+        print(loss.item())'''
         
         # Calculate gradients
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.actor.parameters(), .5)
         # Apply gradients
         self.optimizer.step()
 

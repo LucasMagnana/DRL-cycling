@@ -72,22 +72,22 @@ class MesaAgent(Agent):
     def change_next_position_with_action(self):
         if(self.action==0):
             if(self.pos[0] == self.model.grid.width-1):
-                self.next_position = (self.pos[0]-1, self.pos[1])
+                self.next_position = (self.pos[0], self.pos[1])
             else:
                 self.next_position = (self.pos[0]+1, self.pos[1])
         elif(self.action==1):
             if(self.pos[0] == 0):
-                self.next_position = (self.pos[0]+1, self.pos[1])
+                self.next_position = (self.pos[0], self.pos[1])
             else:
                 self.next_position = (self.pos[0]-1, self.pos[1])
         elif(self.action==2):
             if(self.pos[1] == self.model.grid.height-1):
-                self.next_position = (self.pos[0], self.pos[1]-1)
+                self.next_position = (self.pos[0], self.pos[1])
             else:
                 self.next_position = (self.pos[0], self.pos[1]+1)
         elif(self.action==3):
             if(self.pos[1] == 0):
-                self.next_position = (self.pos[0], self.pos[1]+1)
+                self.next_position = (self.pos[0], self.pos[1])
             else:
                 self.next_position = (self.pos[0], self.pos[1]-1)
         else:
