@@ -76,7 +76,7 @@ class REINFORCEHyperParams :
 
 
 action_space = DiscreteActionSpace(5)
-observation_space = DiscreteObservationSpace(8)
+observation_space = DiscreteObservationSpace(9)
 num_agents = 6
 width=4
 height=7

@@ -92,7 +92,7 @@ class REINFORCEAgent():
 
     def choose_action(self, ob, testing):
         action_probs = self.actor(torch.tensor(ob)).detach().numpy()
-        print(action_probs, ob)
+        #print(action_probs, ob)
         if(testing):
             action = np.argmax(action_probs)
         else:

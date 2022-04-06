@@ -110,7 +110,7 @@ class MesaAgent(Agent):
 
         for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
             if(n != self):
-                neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.destination[0]+1, n.destination[1]+1]
+                neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.destination[0]+1, n.destination[1]+1, int(n.moved)+1]
                 if(len(observation)<self.model.decision_maker.observation_space.shape[0]):
                     observation += neighbor_observation
 
