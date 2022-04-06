@@ -88,6 +88,21 @@ class PPO_Critic(nn.Module):
 
 
 
+class REINFORCE_Model(nn.Module):
+    def __init__(self, size_ob, size_action, hyperParams):
+        super(REINFORCE_Model, self).__init__()       
+        self.inp = nn.Linear(size_ob, hyperParams.HIDDEN_SIZE)
+        self.out = nn.Linear(hyperParams.HIDDEN_SIZE, size_action)
+        self.sm = nn.Softmax(dim=-1)
+    
+    def forward(self, ob):
+        ob = ob.float()
+        out = nn.functional.relu(self.inp(ob))
+        out = self.sm(self.out(out))
+        return out
+
+
+
 
 
 

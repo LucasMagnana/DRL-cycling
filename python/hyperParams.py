@@ -1,3 +1,16 @@
+
+class DiscreteActionSpace: #mandatory to use an agent designed for gym environments
+    def __init__(self, n):
+        self.n = n
+        
+        
+class DiscreteObservationSpace: #mandatory to use an agent designed for gym environments
+    def __init__(self, shape):
+        self.shape = [shape]
+
+
+
+
 class DDQNHyperParams :
     def __init__(self):
         self.BUFFER_SIZE = 100000  #max size of the agent's replays buffer
@@ -46,5 +59,25 @@ class PPOHyperParams :
         self.MIN_NUM_AGENT_IN_GROUP = 2
 
 
-module = "CartPole-v1" #"LunarLanderContinuous-v2"
+class REINFORCEHyperParams :
+    def __init__(self):
+        self.LR = 0.01
+        self.BATCH_SIZE = 100
+        self.GAMMA = 0.99
+
+        self.HIDDEN_SIZE = 16
+        self.ACT_INTER = 16
+
+        self.EPISODE_COUNT = 15000
+        self.MAX_STEPS = 100
+
+        self.RANGE_STEP_TO_WAIT = [3, 9]
+        self.MIN_NUM_AGENT_IN_GROUP = 2
+
+
+action_space = DiscreteActionSpace(5)
+observation_space = DiscreteObservationSpace(8)
+num_agents = 6
+width=4
+height=7
 

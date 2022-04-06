@@ -8,15 +8,7 @@ import torch
 import numpy as np
 import copy
 
-
-class DiscreteActionSpace: #mandatory to use an agent designed for gym environments
-    def __init__(self, n):
-        self.n = n
-        
-        
-class DiscreteObservationSpace: #mandatory to use an agent designed for gym environments
-    def __init__(self, shape):
-        self.shape = [shape]
+from python.DDQNAgent import DDQNAgent
 
 
 class MesaAgent(Agent):
@@ -116,14 +108,14 @@ class MesaAgent(Agent):
     def construct_and_save_observation(self):
         observation = [self.pos[0]+1, self.pos[1]+1, self.destination[0]+1, self.destination[1]+1]
 
-        '''for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
+        for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
             if(n != self):
                 neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.destination[0]+1, n.destination[1]+1]
                 if(len(observation)<self.model.decision_maker.observation_space.shape[0]):
                     observation += neighbor_observation
 
         while(len(observation)<self.model.decision_maker.observation_space.shape[0]):
-            observation.append(0)'''
+            observation.append(0)
         #print(observation)
         self.ob_prec = self.ob
         self.ob = observation #[self.get_padded_path_taken(), observation]
@@ -158,9 +150,7 @@ class MesaAgent(Agent):
         if(self.n_step >= self.next_movement_step):
             if(self.ob == None):
                 self.construct_and_save_observation()
-            action_probs = self.model.decision_maker.old_actor(torch.tensor(self.ob)).detach().numpy()
-            self.action = np.random.choice(np.arange(self.model.decision_maker.action_space.n), p=action_probs)
-            self.value = self.model.decision_maker.critic(torch.tensor(self.ob)).detach().numpy()
+            self.value, self.action = self.model.decision_maker.choose_action(self.ob, self.model.testing)
             self.change_next_position_with_action()
             self.model.grid.move_agent(self, self.next_position)
             self.path_taken.append(self.next_position)
@@ -263,11 +253,15 @@ class MesaModel(Model):
         for a in self.list_agents:
             if(a.moved):
                 done, reward = a.calculate_reward()
-                self.states[a.id].append(a.ob_prec)
-                self.values[a.id].extend(a.value)
-                self.actions[a.id].append(a.action)
-                self.rewards[a.id].append(reward)
-                self.list_done[a.id].append(done) 
+
+                if(isinstance(self.decision_maker, DDQNAgent)):
+                    self.decision_maker.memorize(a.ob_prec, a.action, a.ob, reward, done)
+                else:
+                    self.states[a.id].append(a.ob_prec)
+                    self.values[a.id].extend(a.value)
+                    self.actions[a.id].append(a.action)
+                    self.rewards[a.id].append(reward)
+                    self.list_done[a.id].append(done) 
                 if(done):
                     self.mean_reward += (a.sum_reward/self.num_agents)
                     self.grid.remove_agent(a)

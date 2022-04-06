@@ -161,5 +161,15 @@ class PPOAgent():
                 print("\rEp: {} Average of last 100: {:.2f}".format(self.ep, ar), end="")
 
 
+    def choose_action(self, ob, testing):
+        action_probs = self.old_actor(torch.tensor(ob)).detach().numpy()
+        if(testing):
+            action = np.argmax(action_probs)
+        else:
+            action = np.random.choice(np.arange(self.action_space.n), p=action_probs)
+        value = self.critic(torch.tensor(ob)).detach().numpy()
+        return value, action
+
+
 
                 

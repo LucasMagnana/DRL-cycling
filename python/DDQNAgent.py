@@ -11,7 +11,7 @@ import torch
 from python.NeuralNetworks import Actor
 
 class DDQNAgent(object):
-    def __init__(self, action_space, observation_space, hyperParams, cuda=False, actor_to_load=None):
+    def __init__(self, action_space, observation_space, hyperParams, actor_to_load=None, cuda=False):
 
         self.hyperParams = hyperParams
         
@@ -44,10 +44,34 @@ class DDQNAgent(object):
 
         self.observation_space = observation_space
 
+        self.total_rewards = []
+        self.avg_rewards = []
+
+        self.ep = 0
+
+
+
+    def act(self, env, render=False):
+
+        while(env.running):
+            env.step()
+
+            if(len(self.buffer) > self.hyperParams.LEARNING_START):
+                self.learn()       
+        
+        self.total_rewards.append(env.mean_reward)
+        ar = np.mean(self.total_rewards[-100:])
+        self.avg_rewards.append(ar)
+
+        self.ep += 1
+
+        if(not render):
+            print("\rEp: {} Average of last 100: {:.2f}".format(self.ep, ar), end="")
+
         
 
 
-    def act(self, observation):
+    def choose_action(self, observation, testing):
         #return self.action_space.sample()
         observation = torch.tensor(observation, device=self.device)
         tens_qvalue = self.actor(observation) #compute the qvalues for the observation
@@ -55,8 +79,8 @@ class DDQNAgent(object):
         rand = random()
         if(rand > self.epsilon): #noise management
             _, indices = tens_qvalue.max(0) #finds the index of the max qvalue
-            return indices.item() #return it
-        return randint(0, tens_qvalue.size()[0]-1) #choose a random action
+            return None, indices.item() #return it
+        return None, randint(0, tens_qvalue.size()[0]-1) #choose a random action
 
     def sample(self):
         if(len(self.buffer) < self.batch_size):
@@ -69,7 +93,7 @@ class DDQNAgent(object):
             self.buffer.pop(0)
         self.buffer.append([ob_prec, action, ob, reward, not(done)])
 
-    def learn(self, n_iter=None):
+    def learn(self):
 
         #previous noise decaying method, works well with cartpole
         '''if(self.epsilon > self.hyperParams.MIN_EPSILON):
