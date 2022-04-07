@@ -19,8 +19,8 @@ class DDQNHyperParams :
         self.LR = 0.001 #learning rate of the actor
         self.BATCH_SIZE = 256 #number of replays processed by learning step
 
-        self.HIDDEN_SIZE = 128 #size of the first hidden layer of the actor
-        self.ACT_INTER = 64
+        self.HIDDEN_SIZE_1 = 128 #size of the first hidden layer of the actor
+        self.HIDDEN_SIZE_2 = 64
 
         self.EPISODE_COUNT = 15000 #total number of episodes
         self.MAX_STEPS = 100 #max steps by episode
@@ -41,7 +41,7 @@ class DDQNHyperParams :
 
 class PPOHyperParams :
     def __init__(self):
-        self.LR = 0.01
+        self.LR = 0.001
         self.BATCH_SIZE = 10
         self.GAMMA = 0.99
         self.LAMBDA = 0.99
@@ -52,7 +52,8 @@ class PPOHyperParams :
         self.NUM_EP_ENV = 5
         self.K = 3
 
-        self.HIDDEN_SIZE = 32
+        self.HIDDEN_SIZE_1 = 128 #size of the first hidden layer of the actor
+        self.HIDDEN_SIZE_2 = 64
         self.MAX_STEPS = 100
 
         self.RANGE_STEP_TO_WAIT = [3, 9]
@@ -61,12 +62,12 @@ class PPOHyperParams :
 
 class REINFORCEHyperParams :
     def __init__(self):
-        self.LR = 0.01
+        self.LR = 0.001
         self.BATCH_SIZE = 100
         self.GAMMA = 0.99
 
-        self.HIDDEN_SIZE = 16
-        self.ACT_INTER = 16
+        self.HIDDEN_SIZE_1 = 128 #size of the first hidden layer of the actor
+        self.HIDDEN_SIZE_2 = 64
 
         self.EPISODE_COUNT = 15000
         self.MAX_STEPS = 100
