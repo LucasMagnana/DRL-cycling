@@ -47,7 +47,7 @@ class PPOHyperParams :
         self.LAMBDA = 0.99
         self.EPSILON = 0.2
 
-        self.EPISODE_COUNT = 300
+        self.EPISODE_COUNT = 600
         self.NUM_AGENTS = 10
         self.NUM_EP_ENV = 5
         self.K = 3
@@ -76,9 +76,10 @@ class REINFORCEHyperParams :
         self.MIN_NUM_AGENT_IN_GROUP = 2
 
 
-action_space = DiscreteActionSpace(5)
-observation_space = DiscreteObservationSpace(9)
 num_agents = 6
 width=4
 height=7
+
+action_space = DiscreteActionSpace(5)
+observation_space = DiscreteObservationSpace(4+5*num_agents)
 

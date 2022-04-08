@@ -28,6 +28,7 @@ class MesaAgent(Agent):
         self.reduction_step_applied = False
 
         self.moved = False
+        self.arrived = False
 
         self.n_step = 0
 
@@ -38,6 +39,12 @@ class MesaAgent(Agent):
         self.value = None
 
         self.id = unique_id
+
+
+    def spawn(self, pos, dest):
+        self.model.grid.place_agent(self, pos)
+        self.pos = pos
+        self.destination = dest
 
 
 
@@ -108,14 +115,11 @@ class MesaAgent(Agent):
     def construct_and_save_observation(self):
         observation = [self.pos[0]+1, self.pos[1]+1, self.destination[0]+1, self.destination[1]+1]
 
-        for n in self.model.grid.get_neighbors(self.pos, True, radius=5):
-            if(n != self):
-                neighbor_observation = [n.pos[0]+1, n.pos[1]+1, n.destination[0]+1, n.destination[1]+1, int(n.moved)+1]
-                if(len(observation)<self.model.decision_maker.observation_space.shape[0]):
-                    observation += neighbor_observation
+        for a in self.model.list_agents:
+            if(a != self):
+                a_observation = [a.pos[0]+1, a.pos[1]+1, a.destination[0]+1, a.destination[1]+1, int(a.moved)+1, int(a.arrived)+1]
+                observation += a_observation
 
-        while(len(observation)<self.model.decision_maker.observation_space.shape[0]):
-            observation.append(0)
         #print(observation)
         self.ob_prec = self.ob
         self.ob = observation #[self.get_padded_path_taken(), observation]
@@ -203,21 +207,24 @@ class MesaModel(Model):
 
             if(self.testing):            
                 if(i == 0):
-                    self.grid.place_agent(a, (0, 1))
-                    a.destination = ((self.grid.width-1)//2, self.grid.height-1)
+                    pos = (0, 1)
+                    dest = ((self.grid.width-1)//2, self.grid.height-1)
+                elif(i == 1):
+                    pos = (self.grid.width-1, 0)
+                    dest = ((self.grid.width-1)//2+1, self.grid.height-1)
                 else:
-                    self.grid.place_agent(a, (self.grid.width-1, 0))
-                    a.destination = ((self.grid.width-1)//2+1, self.grid.height-1)
+                    pos = (0, 0)
+                    dest = (0, 0)
+                    a.arrived = True
+                    
 
             else:              
                 pos=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
-                self.grid.place_agent(a, pos)
                 dest=pos
                 while(dest==pos):
                     dest=(randint(0, self.grid.width-1), randint(0, self.grid.height-1))
-                
-                a.destination=dest
 
+            a.spawn(pos, dest)
             self.list_agents.append(a)
 
         self.states = {}
@@ -227,11 +234,17 @@ class MesaModel(Model):
         self.list_done = {}
 
         for a in self.list_agents:
-            self.states[a.id] = []
-            self.rewards[a.id] = []
-            self.actions[a.id] = []
-            self.values[a.id] = []
-            self.list_done[a.id] = []
+            if(a.arrived):
+                pos = copy.deepcopy(a.pos)
+                self.grid.remove_agent(a)
+                self.schedule.remove(a)
+                a.pos = pos
+            else:
+                self.states[a.id] = []
+                self.rewards[a.id] = []
+                self.actions[a.id] = []
+                self.values[a.id] = []
+                self.list_done[a.id] = []
 
         self.n_iter = 0
         self.mean_reward = 0
@@ -248,10 +261,11 @@ class MesaModel(Model):
         self.schedule.step()
         self.check_for_groups()
         for a in self.list_agents:
-            a.construct_and_save_observation()
+            if(not a.arrived):
+                a.construct_and_save_observation()
 
         for a in self.list_agents:
-            if(a.moved):
+            if(not a.arrived and a.moved):
                 done, reward = a.calculate_reward()
 
                 if(isinstance(self.decision_maker, DDQNAgent)):
@@ -264,20 +278,18 @@ class MesaModel(Model):
                     self.list_done[a.id].append(done) 
                 if(done):
                     self.mean_reward += (a.sum_reward/self.num_agents)
+                    pos = copy.deepcopy(a.pos)
                     self.grid.remove_agent(a)
                     self.schedule.remove(a)
-                else:
-                    next_list_agents.append(a)
+                    a.arrived = True
+                    a.pos = pos
                 a.moved = False
-            else:
-                next_list_agents.append(a)
-
-        self.list_agents = next_list_agents
 
 
-        if(len(self.list_agents) == 0 or self.n_iter == self.hyperParams.MAX_STEPS):
+        if(self.schedule.get_agent_count() == 0 or self.n_iter == self.hyperParams.MAX_STEPS):
             for a in self.list_agents:
-                self.mean_reward += (a.sum_reward/self.num_agents)
+                if(not a.arrived):
+                    self.mean_reward += (a.sum_reward/self.num_agents)
             self.running = False
 
         

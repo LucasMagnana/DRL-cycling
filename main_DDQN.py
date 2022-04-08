@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
         actor_to_load='./trained_networks/mesa_DDQN.n'
         ddqn_agent = DDQNAgent(action_space, observation_space, hyperParams, actor_to_load)
-        params = {"N":2, "width": width, "height": height, "waiting_dict": waiting_dict, "decision_maker": ddqn_agent, "hyperParams": hyperParams, "testing": testing}
+        params = {"N":num_agents, "width": width, "height": height, "waiting_dict": waiting_dict, "decision_maker": ddqn_agent, "hyperParams": hyperParams, "testing": testing}
         grid = CanvasGrid(agent_portrayal, width, height, 500, 500)
         server = ModularServer(MesaModel,
                             [grid],
